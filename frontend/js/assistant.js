@@ -24,10 +24,10 @@ function voile() {
   return v;
 }
 
-async function ouvrirAssistant() {
+async function ouvrirAssistant(etape = 'vous') {
   mode = 'assistant';
   REG = await A('reglages_lire');
-  courant = 'vous';
+  courant = ETAPES.includes(etape) ? etape : 'vous';
   dessiner();
 }
 
@@ -49,6 +49,7 @@ function dessiner() {
     const i = ETAPES.indexOf(courant);
     v.innerHTML = `<div class="as-fenetre" role="dialog" aria-modal="true">
       <div class="as-barre"><span class="as-nom">${T('as.titre_' + courant)}</span>
+        ${REG.config.premier_lancement_fait ? `<button class="as-btn petit discret" id="as-quitter">✕ ${T('as.quitter_assistant')}</button>` : ''}
         <div class="as-etapes">${ETAPES.map((e, k) => `<span class="${k < i ? 'fait' : k === i ? 'ici' : ''}">${k + 1} ${T('as.onglet_' + e)}${k < i ? ' ✓' : ''}</span>`).join('')}</div></div>
       <div class="as-corps">${contenu}</div>
       <div class="as-pied">
@@ -66,6 +67,8 @@ function dessiner() {
         e.target.insertAdjacentText('beforebegin', `${T('as.erreur_enregistrement')} ${erreur?.message || erreur} `);
       }
     };
+    const quitter = v.querySelector('#as-quitter');
+    if (quitter) quitter.onclick = () => ouvrirReglages('avance');   // les ecrans deja valides restent enregistres
     const passer = v.querySelector('#as-passer');
     if (passer) passer.onclick = async () => { await enregistrer(); await A('terminer_assistant'); };
   } else {
@@ -157,6 +160,116 @@ function lierComposants(racine, optionsPar = {}) {
   });
 }
 
+// ---------- Docker Desktop (recherche web, messagerie, n8n) et n8n ----------
+const MODULES_DOCKER = ['recherche', 'messagerie', 'n8n'];
+const moduleCoche = (v, id) => !!v.querySelector(`[data-module="${id}"]`)?.checked;
+
+// attend la fin d'un travail en fond (progression), puis appelle suite() s'il a reussi
+function attendreFin(id, suite) {
+  const minuteur = setInterval(async () => {
+    const t = (await A('progression'))[id];
+    if (t && (t.etat === 'termine' || t.etat === 'erreur')) { clearInterval(minuteur); if (t.etat === 'termine') suite(); }
+  }, 2000);
+}
+
+function boutonRedemarrer() {
+  return `<div class="as-ligne" id="as-zone-redemarrage"><button class="as-btn danger" id="as-redemarrer-pc">${T('docker.redemarrer')}</button></div>`;
+}
+function lierRedemarrer(zone) {
+  const b = zone.querySelector('#as-redemarrer-pc');
+  if (!b) return;
+  b.onclick = () => {   // confirmation dans la page, avec l'avertissement en clair
+    const z = zone.querySelector('#as-zone-redemarrage');
+    z.innerHTML = `<div class="as-alerte rouge">${T('docker.confirmer_redemarrage')}</div>
+      <button class="as-btn danger" id="as-oui-redemarrer">${T('docker.redemarrer_dans_60')}</button>
+      <button class="as-btn discret" id="as-non-redemarrer">${T('as.annuler')}</button>`;
+    z.querySelector('#as-non-redemarrer').onclick = () => { z.outerHTML = boutonRedemarrer(); lierRedemarrer(zone); };
+    z.querySelector('#as-oui-redemarrer').onclick = async () => {
+      await enregistrer();
+      const r = await A('redemarrer_windows', courant, mode);
+      z.innerHTML = r.ok ? `<div class="as-alerte info">${T('docker.redemarrage_programme')}</div>
+          <button class="as-btn discret" id="as-annuler-redemarrage">${T('docker.annuler_redemarrage')}</button>`
+        : `<div class="as-alerte rouge">${T('docker.redemarrage_impossible')}</div>`;
+      const annuler = z.querySelector('#as-annuler-redemarrage');
+      if (annuler) annuler.onclick = async () => { await A('annuler_redemarrage'); z.outerHTML = boutonRedemarrer(); lierRedemarrer(zone); };
+    };
+  };
+}
+
+async function dessinerDocker(v) {
+  const zone = v.querySelector('#as-docker');
+  if (!zone) return;
+  if (!MODULES_DOCKER.some((m) => moduleCoche(v, m))) { zone.innerHTML = ''; return; }
+  zone.innerHTML = `<div class="as-carte"><h3>${T('docker.titre')}</h3><p class="as-gris">${T('docker.verification')}</p></div>`;
+  const { etat } = await A('etat_docker');
+  const corps = {
+    absent: `<p>${T('docker.absent')}</p>${composant('docker')}`,
+    sans_droits: `<p>${T('docker.pas_membre')}</p>
+      <div class="as-ligne"><button class="as-btn bouclier" id="as-docker-groupe">🛡 ${T('docker.ajouter_compte')}</button></div>`,
+    a_reconnecter: `<p>${T('docker.reconnecter')}</p>${boutonRedemarrer()}`,
+    redemarrage: `<div class="as-alerte">${T('docker.avant_redemarrage')}</div>${boutonRedemarrer()}`,
+    arrete: `<p>${T('docker.arrete')}</p>
+      <div class="as-ligne"><button class="as-btn principal" id="as-docker-demarrer">${T('docker.demarrer')}</button></div>${zoneTravail('docker_demarrage')}`,
+    pret: `<p class="p-local">✓ ${T('docker.pret')}</p>
+      <div class="as-ligne"><button class="as-btn" id="as-docker-demarrer">${T('docker.lancer_conteneurs')}</button></div>${zoneTravail('docker_demarrage')}`,
+  }[etat] || `<p>${T('docker.inconnu')}</p>`;
+  zone.innerHTML = `<div class="as-carte"><h3>${T('docker.titre')}</h3>${corps}</div>`;
+  lierComposants(zone, { docker: () => ({ etape: courant }) });
+  const installer = zone.querySelector('[data-installer="docker"]');
+  if (installer) installer.addEventListener('click', () => attendreFin('docker', () => dessinerDocker(v)));
+  lierRedemarrer(zone);
+  const groupe = zone.querySelector('#as-docker-groupe');
+  if (groupe) groupe.onclick = async () => {
+    const r = await A('lancer_admin', 'ajouter_docker_users.ps1');
+    groupe.parentElement.innerHTML = `<div class="as-alerte info">${echappe(r.message)} ${T('docker.apres_ajout')}</div>${boutonRedemarrer()}`;
+    lierRedemarrer(zone);
+  };
+  const demarrer = zone.querySelector('#as-docker-demarrer');
+  if (demarrer) demarrer.onclick = async () => {
+    demarrer.disabled = true;
+    await enregistrer();
+    await A('demarrer_docker', MODULES_DOCKER.filter((m) => moduleCoche(v, m)));
+    attendreFin('docker_demarrage', () => { dessinerDocker(v); dessinerN8n(v); });
+  };
+  suivreProgression();
+}
+
+async function dessinerN8n(v) {
+  const zone = v.querySelector('#as-n8n');
+  if (!zone) return;
+  if (!moduleCoche(v, 'n8n')) { zone.innerHTML = ''; return; }
+  const e = await A('etat_n8n');
+  if (!e.repond) {
+    zone.innerHTML = `<p class="as-gris">${T('n8n.docker_au_dessous')}</p>${composant('n8n')}`;
+    lierComposants(zone);
+    zone.querySelector('[data-installer="n8n"]').addEventListener('click', () => attendreFin('n8n', () => dessinerN8n(v)));
+    suivreProgression();
+    return;
+  }
+  zone.innerHTML = e.actif && e.cle ? `<div class="as-alerte vert">✓ ${T('n8n.connecte')}</div>` : `
+    <ol class="as-etapes-guide">
+      <li>${T('n8n.etape_ouvrir')} <button class="as-btn petit" id="as-ouvrir-n8n">${T('n8n.ouvrir')}</button></li>
+      <li>${T('n8n.etape_compte')}</li>
+      <li>${T('n8n.etape_jeton')}</li>
+      <li>${T('n8n.etape_workflows')}</li>
+      <li>${T('n8n.etape_coller')}</li>
+    </ol>
+    ${cle('n8n-cle-mcp.txt', '')}
+    <div class="as-ligne"><button class="as-btn principal" id="as-tester-n8n">${T('n8n.tester')}</button></div>
+    <div id="as-resultat-n8n"></div>`;
+  lierCles(zone);
+  const ouvrir = zone.querySelector('#as-ouvrir-n8n');
+  if (ouvrir) ouvrir.onclick = () => A('ouvrir_n8n');
+  const tester = zone.querySelector('#as-tester-n8n');
+  if (tester) tester.onclick = async () => {
+    tester.disabled = true;
+    const r = await A('tester_n8n');
+    zone.querySelector('#as-resultat-n8n').innerHTML = `<div class="as-alerte ${r.ok ? 'vert' : 'rouge'}">${echappe(r.message)}</div>`;
+    tester.disabled = false;
+    if (r.ok) REG = await A('reglages_lire');
+  };
+}
+
 // ---------- confirmation integree a la page (pas de confirm()) ----------
 function confirmer(bouton, texte, action) {
   const zone = document.createElement('span');
@@ -187,7 +300,8 @@ const SECTIONS = {
   modele: () => {
     if (!DETECT) return `<p class="as-gris">${T('as.detection_en_cours')}</p>`;
     const p = DETECT.palier, pr = DETECT.principale;
-    const source = valeurConf('lanceur', 'modele') && !p ? 'gguf' : (sourceChoisie || 'conseille');
+    const actuel = String(valeurConf('lanceur', 'modele') || '');
+    const source = sourceChoisie || (actuel && !(p && actuel.endsWith(p.fichier)) ? 'gguf' : (p ? 'conseille' : 'gguf'));
     const cartes = DETECT.cartes.map((c) => `<option value="${c.index}" ${String(valeurConf('lanceur', 'carte_principale', '') === '' ? (pr?.index ?? 0) : valeurConf('lanceur', 'carte_principale')) === String(c.index) ? 'selected' : ''}>
       ${echappe(c.nom)} — ${String(c.memoire_go).replace('.', T('as.separateur_decimal'))} ${T('as.unite_go')}</option>`).join('');
     return `<h2>${T('as.modele_titre')}</h2><p class="as-sous">${T('as.modele_sous')}</p>
@@ -249,7 +363,7 @@ const SECTIONS = {
       ${ligne('dictee', T('as.local'), 'p-local', `<label class="as-champ" for="as-carte-dictee">${T('as.carte_dictee')}<select id="as-carte-dictee"></select></label>
         <div class="as-alerte info" id="as-dictee-choix"></div>${composant('dictee')}<div id="as-test-dictee" class="as-mono"></div>`,
         `<button class="as-btn petit" id="as-tester-dictee">🎙 ${T('as.tester')}</button>`)}
-      ${ligne('recherche', T('as.moteur_local'), 'p-local', composant('docker'))}
+      ${ligne('recherche', T('as.moteur_local'), 'p-local')}
       ${ligne('navigateur', T('as.profil_isole'), 'p-local')}
       ${ligne('windows', '', '', composant('windows_mcp'))}
       ${ligne('wikipedia', T('as.local'), 'p-local', composant('wikipedia'))}
@@ -259,8 +373,9 @@ const SECTIONS = {
         ${ligne('telegram', T('as.a_distance'), 'p-envoi', cle('telegram.env', 'TELEGRAM_BOT_TOKEN'))}
         ${ligne('messagerie', T('as.compte_mail'), 'p-envoi', T('as.messagerie_aide'))}
         ${ligne('hermes', '', '')}
-        ${ligne('n8n', T('as.licence_non_libre'), 'p-licence', cle('n8n-cle-mcp.txt', ''))}
-      </div></details>`;
+        ${ligne('n8n', T('as.licence_non_libre'), 'p-licence', '<div id="as-n8n"></div>')}
+      </div></details>
+      <div id="as-docker"></div>`;
   },
 
   admin: () => `<h2>${T('as.admin_titre')}</h2><p class="as-sous">${T('as.admin_sous')}</p>
@@ -281,6 +396,8 @@ const SECTIONS = {
       <div class="as-ligne"><button class="as-btn danger" id="as-vider-journal">${T('as.vider_journal')}</button></div></div>`,
 
   avance: () => `<h2>${T('as.rubrique_avance')}</h2>
+    <div class="as-carte"><h3>${T('as.relancer_assistant_titre')}</h3><p>${T('as.relancer_assistant_aide')}</p>
+      <div class="as-ligne"><button class="as-btn" id="as-relancer-assistant">${T('as.relancer_assistant')}</button></div></div>
     <div class="as-carte"><h3>${T('as.mises_a_jour')}</h3><p>${T('as.mises_a_jour_aide', { v1: echappe(REG.version) })}</p>
       <div class="as-ligne"><button class="as-btn" id="as-verifier-maj">${T('as.verifier_maj')}</button></div><div id="as-maj"></div>${zoneTravail('mise_a_jour')}</div>
     <div class="as-carte"><h3>${T('as.desinstaller_titre')}</h3><p>${T('as.desinstaller_aide')}</p>
@@ -380,7 +497,12 @@ const LIENS = {
   }),
 
   modules: async (v) => {
-    v.querySelectorAll('[data-module]').forEach((c) => c.onchange = () => noter('modules', c.dataset.module, c.checked));
+    v.querySelectorAll('[data-module]').forEach((c) => c.onchange = () => {
+      noter('modules', c.dataset.module, c.checked);
+      if (MODULES_DOCKER.includes(c.dataset.module)) dessinerDocker(v);
+      if (c.dataset.module === 'n8n') dessinerN8n(v);
+    });
+    dessinerDocker(v); dessinerN8n(v);
     lierCles(v);
     if (!DETECT) DETECT = await A('detecter');
     // voix de la langue choisie
@@ -444,6 +566,8 @@ const LIENS = {
   },
 
   avance: (v) => {
+    // l'assistant relit la configuration actuelle (valeurConf) : seules les valeurs changees sont enregistrees
+    v.querySelector('#as-relancer-assistant').onclick = () => { sourceChoisie = null; DETECT = null; ouvrirAssistant(); };
     v.querySelector('#as-verifier-maj').onclick = async () => {
       const r = await A('verifier_mises_a_jour'), zone = v.querySelector('#as-maj');
       if (!r.ok) { zone.innerHTML = `<div class="as-alerte">${echappe(r.message)}</div>`; return; }
@@ -486,5 +610,8 @@ window.addEventListener('pywebviewready', async () => {
   bouton.onclick = () => ouvrirReglages();
   (document.querySelector('.cyber-header-module') || document.body).appendChild(bouton);
   const r = await A('reglages_lire');
-  if (!r.config.premier_lancement_fait) ouvrirAssistant();
+  if (r.reprise) {   // redemarrage demande par l'installation de Docker : on reprend a la meme etape
+    await A('effacer_reprise');
+    if (r.reprise.mode === 'reglages') ouvrirReglages(r.reprise.etape); else ouvrirAssistant(r.reprise.etape);
+  } else if (!r.config.premier_lancement_fait) ouvrirAssistant();
 });

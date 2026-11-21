@@ -37,8 +37,9 @@ Règle de conception : **une protection est dans le code, jamais seulement dans 
 ## Outils administrateur (facultatifs, `outils-admin/`)
 
 - **Trousse de réparation** : l'agent ne fait que choisir un geste dans une liste fermée. Avant chaque geste, une fenêtre « Agent Local - confirmation administrateur » s'ouvre sur l'écran. Comme elle appartient à un processus administrateur, Windows interdit à un programme ordinaire d'y cliquer : une fausse demande déposée par un logiciel malveillant ne peut rien faire sans votre clic. Sans réponse en 10 minutes, le geste est refusé.
-- **Santé du PC** : les outils lancés en administrateur sont copiés dans `C:\Program Files\AgentLocalOutils`, où seuls les administrateurs peuvent écrire. À chaque lancement, Autoruns doit avoir une signature Microsoft valide, et chaque fichier de code de LibreHardwareMonitor doit avoir l'empreinte SHA-256 relevée à l'installation. Un fichier changé, manquant ou en trop bloque le lancement, ce que Réglages affiche en clair, avec un bouton « Réparer / mettre à jour ».
+- **Santé du PC** : les outils lancés en administrateur sont copiés dans `C:\Program Files\AgentLocal\Outils`, où seuls les administrateurs peuvent écrire. À chaque lancement, Autoruns doit avoir une signature Microsoft valide, et chaque fichier de code de LibreHardwareMonitor doit avoir l'empreinte SHA-256 relevée à l'installation. Un fichier changé, manquant ou en trop bloque le lancement, ce que Réglages affiche en clair, avec un bouton « Réparer / mettre à jour ».
 - Les droits sont vérifiés par identifiant de sécurité (SID), ce qui fonctionne quelle que soit la langue de Windows.
+- **Jamais d'écrasement silencieux** : ces scripts n'utilisent que leurs propres noms (`C:\ProgramData\AgentLocal`, `C:\Program Files\AgentLocal`, dossier `\AgentLocal\` du Planificateur de tâches). S'ils trouvent un élément de ce nom qu'ils n'ont pas créé, ils le montrent et demandent de taper OUI avant de le remplacer.
 
 ## Secrets
 

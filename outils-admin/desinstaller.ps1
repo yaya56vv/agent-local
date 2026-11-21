@@ -1,5 +1,5 @@
 # Agent Local - desinstallation propre (Reglages > Avance > Desinstaller, ou a la main en administrateur).
-# Retire : les taches planifiees d'Agent Local, les dossiers C:\ProgramData\AgentLocal* et C:\Program Files\AgentLocalOutils,
+# Retire : les taches planifiees d'Agent Local, les dossiers C:\ProgramData\AgentLocal et C:\Program Files\AgentLocal,
 # la regle de pare-feu, le raccourci Bureau ; au choix, les modeles telecharges (-SupprimerModeles) et le dossier de
 # secrets (-SupprimerSecrets). Affiche un recapitulatif et demande de taper OUI avant de supprimer quoi que ce soit.
 # Le dossier d'installation lui-meme (code, conversations, carnet) reste : supprimez-le a la main ensuite si vous le voulez.
@@ -12,9 +12,9 @@ trap { Arret (T 'admin.desinstaller.erreur_inattendue_v1' @{ v1 = ($_.Exception.
 $compte = Compte-Utilisateur $Utilisateur
 if (-not $Installation) { $Installation = Split-Path $PSScriptRoot }
 
-$taches = @('ReparationAgent', 'AutorunsAgent', 'DisquesAgent', 'LibreHardwareMonitor' | ForEach-Object {
-    Get-ScheduledTask -TaskName $_ -ErrorAction SilentlyContinue | Where-Object { $_.Description -like 'Agent Local*' } })
-$dossiers = @($OUTILS, $SANTE, $DISQUES, $REPARATION | Where-Object { Test-Path $_ })
+# seulement les taches du dossier \AgentLocal\ du Planificateur (jamais d'autres taches du meme nom ailleurs)
+$taches = @(Get-ScheduledTask -TaskPath $DOSSIER_TACHES -ErrorAction SilentlyContinue)
+$dossiers = @((Split-Path $OUTILS), (Split-Path $SANTE) | Where-Object { Test-Path $_ })
 $raccourci = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Agent Local.lnk'
 $raccourciUtilisateur = Join-Path $compte.Profil 'Desktop\Agent Local.lnk'
 $raccourcis = @($raccourci, $raccourciUtilisateur | Sort-Object -Unique | Where-Object { Test-Path $_ })
@@ -34,8 +34,8 @@ if ((Read-Host (T 'admin.desinstaller.taper_oui' @{ mot = (T 'admin.desinstaller
     Write-Host (T 'admin.desinstaller.annule'); Read-Host (T 'admin.commun.entree_fermer'); exit }
 
 Etape (T 'admin.desinstaller.suppression')
-foreach ($t in $taches) { Unregister-ScheduledTask -TaskName $t.TaskName -Confirm:$false; Ok (T 'admin.desinstaller.tache_v1_retiree' @{ v1 = ($t.TaskName) }) }
-Get-Process LibreHardwareMonitor -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$OUTILS*" } | Stop-Process -Force
+foreach ($t in $taches) { Unregister-ScheduledTask -TaskPath $DOSSIER_TACHES -TaskName $t.TaskName -Confirm:$false; Ok (T 'admin.desinstaller.tache_v1_retiree' @{ v1 = ($t.TaskName) }) }
+Get-Process LibreHardwareMonitor -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$OUTILS\*" } | Stop-Process -Force
 Get-NetFirewallRule -DisplayName 'Agent Local - LibreHardwareMonitor' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
 foreach ($d in $dossiers + $modeles + $secrets) { Remove-Item $d -Recurse -Force; Ok (T 'admin.desinstaller.dossier_v1_supprime' @{ v1 = $d }) }
 foreach ($r in $raccourcis) { Remove-Item $r -Force; Ok (T 'admin.desinstaller.raccourci_v1_supprime' @{ v1 = $r }) }

@@ -62,8 +62,23 @@ Pourquoi au moins 65 536 jetons de mémoire ? À chaque étape, l'agent relit la
    4. **modules** à cocher, avec un bouton « Tester » pour la voix et la dictée, la licence de chaque composant et une case « J'accepte » ;
    5. **outils administrateur** facultatifs (santé du PC, trousse de réparation), installés avec la confirmation de Windows.
 
+Si vous cochez la recherche web, la messagerie ou n8n, l'assistant vérifie Docker Desktop. S'il manque, il l'installe (licence affichée, case « J'accepte », source officielle winget, WSL 2 si besoin, droits de votre compte), prévient avant le redémarrage nécessaire, puis reprend tout seul à la même étape.
+
 Vous ne modifiez aucun fichier à la main : tout se règle ensuite dans **⚙ Réglages**.
 Détails : [docs/installation.fr.md](docs/installation.fr.md).
+
+### Votre premier workflow n8n
+
+Agent Local ne fournit aucun workflow : vous créez les vôtres dans n8n (installé depuis l'assistant ou **Réglages → Modules**, case n8n).
+
+1. Ouvrez n8n sur `http://localhost:5678`, puis cliquez sur « Create workflow ».
+2. Ajoutez le déclencheur « Webhook » (les workflows visibles par l'agent doivent commencer par un Webhook, un Schedule, un Form ou un Chat).
+3. Ajoutez une action simple, comme « Edit Fields (Set) » pour renvoyer un texte, ou « Send Email ».
+4. Enregistrez (« Save ») avec un nom et une description clairs : l'agent choisit d'après eux.
+5. Dans les Settings du workflow, cochez « Available in MCP », puis activez le workflow (« Active » / « Publish »).
+6. Dans Agent Local, demandez par exemple « lance mon workflow X » : l'agent demande toujours votre accord avant chaque lancement.
+
+Le compte et les workflows n8n sont gardés dans le volume Docker `agent-local-n8n`, conservé quand le conteneur est recréé.
 
 ---
 

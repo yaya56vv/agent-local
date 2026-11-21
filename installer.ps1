@@ -8,6 +8,7 @@ param([switch]$SansRaccourci, [switch]$SansLancement)
 $ErrorActionPreference = 'Stop'
 $installation = $PSScriptRoot
 . (Join-Path $installation 'outils\langue.ps1')
+. (Join-Path $installation 'outils\docker.ps1')
 $langue = Charger-Langue (Join-Path $installation 'langues') ''
 function Ok($t) { Write-Host "  [OK] $t" -ForegroundColor Green }
 function Etape($t) { Write-Host ''; Write-Host "== $t" -ForegroundColor Cyan }
@@ -52,6 +53,11 @@ if (-not (Test-Path $config)) {
     Copy-Item (Join-Path $installation 'noyau\config.example.json') $config
     Ok (T 'installeur.config_creee')
 } else { Ok (T 'installeur.config_gardee') }
+
+if (Docker-Installe) {
+    Etape (T 'docker.etape')
+    if (Verifier-GroupeDocker $installation $langue) { Ok (T 'docker.ok') }
+}
 
 if (-not $SansRaccourci) {
     Etape (T 'installeur.etape_raccourci')

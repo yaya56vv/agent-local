@@ -2,38 +2,41 @@
 # Lance depuis l'assistant ou Reglages > Outils admin, avec la confirmation de Windows (UAC).
 #
 # Ce qu'il fait :
-#   1. cree C:\ProgramData\AgentLocalReparation : scripts\ (ecriture reservee aux administrateurs), demande\ (Agent Local
+#   1. cree C:\ProgramData\AgentLocal\Reparation : scripts\ (ecriture reservee aux administrateurs), demande\ (Agent Local
 #      y depose sa demande : modifiable par les Utilisateurs), resultats\ et pilotes\ ;
 #   2. y ecrit le repartiteur : une LISTE FERMEE de gestes de depannage. Avant chaque geste (sauf la simple liste des
 #      points de restauration), une fenetre « Agent Local - confirmation administrateur » s'ouvre sur l'ecran : Windows
 #      interdit a un programme ordinaire d'y cliquer, donc un programme qui deposerait une fausse demande dans demande\
 #      ne peut rien faire sans le clic de l'utilisateur. Sans reponse en 10 minutes, le geste est refuse ;
-#   3. cree la tache planifiee ReparationAgent (droits administrateur, lancee a la demande par Agent Local).
+#   3. cree la tache planifiee \AgentLocal\Reparation (droits administrateur, lancee a la demande par Agent Local).
 # Ne supprime rien.
 param([string]$Utilisateur = '', [string]$Langue = '')
 . (Join-Path $PSScriptRoot 'commun.ps1')
 Verifier-Admin
-Start-Transcript -Path (Join-Path $env:ProgramData 'AgentLocalReparation-installation.log') -Append | Out-Null
+Start-Transcript -Path (Join-Path $env:ProgramData 'AgentLocal-reparation-installation.log') -Append | Out-Null
 trap { Arret (T 'admin.installer_reparation.erreur_inattendue_v1' @{ v1 = ($_.Exception.Message) }) }
 $compte = Compte-Utilisateur $Utilisateur
 if (-not $compte.Profil) { Arret (T 'admin.installer_reparation.profil_introuvable_pour_v1' @{ v1 = ($compte.Nom) }) }
 
 Etape (T 'admin.installer_reparation.1_dossiers')
 $scripts = Join-Path $REPARATION 'scripts'
+Verifier-Avant-Ecrasement @($REPARATION) @('Reparation')
+Proteger-Racine $RACINE_DONNEES
 Proteger $REPARATION
 Proteger $scripts
 foreach ($d in 'demande', 'resultats', 'pilotes') { New-Item -ItemType Directory -Force (Join-Path $REPARATION $d) | Out-Null }
 # demande\ : Agent Local (droits ordinaires) y depose sa demande ; la fenetre de confirmation fait barriere.
 icacls (Join-Path $REPARATION 'demande') /grant "*${SID_UTILISATEURS}:(OI)(CI)M" | Out-Null
 Verifier-Protege $scripts
+Marquer $REPARATION
 Ok (T 'admin.installer_reparation.v1_pret' @{ v1 = $REPARATION })
 
 Etape (T 'admin.installer_reparation.2_repartiteur_liste_fermee_de')
 $tempUtilisateur = Join-Path $compte.Profil 'AppData\Local\Temp'
 $repartiteur = @'
 # Repartiteur de la trousse de reparation d'Agent Local. Lance en ADMINISTRATEUR par la tache planifiee
-# « ReparationAgent ». N'execute QUE les gestes de la liste fermee ci-dessous ; la demande ne fait que choisir.
-$base = Join-Path $env:ProgramData 'AgentLocalReparation'
+# \AgentLocal\Reparation. N'execute QUE les gestes de la liste fermee ci-dessous ; la demande ne fait que choisir.
+$base = Join-Path $env:ProgramData 'AgentLocal\Reparation'
 $dem = Join-Path $base 'demande\demande.json'
 if (-not (Test-Path $dem)) { exit }
 $brut = Get-Content $dem -Raw -Encoding UTF8; Remove-Item $dem -Force
@@ -130,7 +133,7 @@ Verifier-Protege $scripts
 Ok (T 'admin.installer_reparation.repartiteur_ecrit_fenetre_de_confirmation')
 
 Etape (T 'admin.installer_reparation.3_tache_planifiee')
-Enregistrer-Tache 'ReparationAgent' (Action-PowerShell (Join-Path $scripts 'repartiteur.ps1')) $compte 'PT3H'
+Enregistrer-Tache 'Reparation' (Action-PowerShell (Join-Path $scripts 'repartiteur.ps1')) $compte (New-TimeSpan -Hours 3)
 
 Write-Host ''
 Write-Host (T 'admin.installer_reparation.termine') -ForegroundColor Green

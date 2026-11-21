@@ -1,6 +1,6 @@
 """MCP reparation d'Agent Local : la trousse de reparation (14/11/2026).
-Une LISTE FERMEE de gestes de depannage, executes en administrateur par la tache planifiee « ReparationAgent »
-(script protege C:\\ProgramData\\AgentLocalReparation\\scripts\\repartiteur.ps1, non modifiable sans les droits admin).
+Une LISTE FERMEE de gestes de depannage, executes en administrateur par la tache planifiee \\AgentLocal\\Reparation
+(script protege C:\\ProgramData\\AgentLocal\\Reparation\\scripts\\repartiteur.ps1, non modifiable sans les droits admin).
 L'agent ne fait que CHOISIR un geste ; il ne peut pas faire executer une commande de son invention.
 Un point de restauration est cree automatiquement avant les gestes risques.
 Outils : gestes_disponibles, points_de_restauration, resultat_reparation (libres) ; lancer_reparation (sur accord).
@@ -18,8 +18,8 @@ from langue import t as tr
 
 serveur = FastMCP("reparation")
 LECTURE = ToolAnnotations(readOnlyHint=True)
-BASE = r"C:\ProgramData\AgentLocalReparation"
-TACHE = "ReparationAgent"
+BASE = r"C:\ProgramData\AgentLocal\Reparation"
+TACHE = r"\AgentLocal\Reparation"   # dossier AgentLocal du Planificateur de taches
 
 GESTES = {
     "point_restauration": ("", tr("mcp_reparation.cree_un_point_de_restauration")),

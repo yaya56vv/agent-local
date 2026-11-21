@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -81,6 +82,9 @@ COMPOSANTS = {
                "texte": tr("assistant.docker_desktop_est_gratuit_pour"),
                "lien": "https://www.docker.com/legal/docker-subscription-service-agreement/", "taille_go": 4.0,
                "module": "recherche"},
+    "n8n": {"nom": tr("n8n.nom"), "licence": "Sustainable Use License", "texte": tr("n8n.licence_texte"),
+            "case": tr("n8n.case"), "lien": "https://docs.n8n.io/sustainable-use-license/", "taille_go": 0.7,
+            "module": "n8n"},
     "sante": {"nom": tr("assistant.sante_du_pc_autoruns_librehardwaremonitor"), "licence": tr("assistant.eula_microsoft_mpl_2_0"),
               "texte": tr("assistant.autoruns_est_un_logiciel_microsoft"),
               "lien": "https://learn.microsoft.com/sysinternals/license-terms", "taille_go": 0.1, "module": "sante",
@@ -392,6 +396,10 @@ def installer_composant(ident, licence_acceptee, options=None):
     composant = COMPOSANTS[ident]
     if composant.get("admin"):
         return lancer_admin(composant["admin"], licences=True)
+    if ident == "docker":
+        return installer_docker(options.get("etape", "modules"))
+    if ident == "n8n":
+        return installer_n8n()
 
     def windows_mcp():
         python = _venv(INSTALLATION / "outils" / "windows-mcp")
@@ -443,18 +451,7 @@ def installer_composant(ident, licence_acceptee, options=None):
         _activer_module("wikipedia", wikipedia={"fichier_zim": str(zim)})
         return tr("assistant.wikipedia_hors_ligne_installe", v1=noms[-1])
 
-    def docker():
-        _noter(ident, message=tr("assistant.installation_de_docker_desktop_par"))
-        r = subprocess.run(["winget", "install", "--id", "Docker.DockerDesktop", "--exact", "--source", "winget",
-                            "--accept-package-agreements", "--accept-source-agreements"], capture_output=True,
-                           encoding="utf-8", errors="replace")
-        if r.returncode not in (0, -1978335189):
-            raise RuntimeError(tr("assistant.winget_n_a_pas_pu", v1=r.returncode))
-        _preparer_searxng()
-        _activer_module("recherche")
-        return tr("assistant.docker_desktop_installe_redemarrez_l")
-
-    travaux = {"windows_mcp": windows_mcp, "dictee": dictee, "xtts": xtts, "wikipedia": wikipedia, "docker": docker}
+    travaux = {"windows_mcp": windows_mcp, "dictee": dictee, "xtts": xtts, "wikipedia": wikipedia}
     return _en_fond(ident, travaux[ident])
 
 
@@ -494,7 +491,8 @@ def _compte():
 def lancer_admin(script, licences=False, options=""):
     """Ouvre le script d'outils-admin dans un PowerShell administrateur : Windows affiche sa confirmation (UAC)."""
     chemin = INSTALLATION / "outils-admin" / script
-    if script not in ("installer_sante.ps1", "installer_reparation.ps1", "desinstaller.ps1") or not chemin.exists():
+    if script not in ("installer_sante.ps1", "installer_reparation.ps1", "desinstaller.ps1", "ajouter_docker_users.ps1") \
+            or not chemin.exists():
         return {"ok": False, "message": tr("assistant.script_inconnu")}
     arguments = f"-NoProfile -ExecutionPolicy Bypass -File \"{chemin}\" -Utilisateur \"{_compte()}\""
     import langue
@@ -503,23 +501,210 @@ def lancer_admin(script, licences=False, options=""):
         arguments += " -LicencesAcceptees"
     arguments += options
     commande = ["powershell", "-NoProfile", "-Command",
-                tr("assistant.start_process_powershell_verb_runas", v1=arguments.replace(chr(39), chr(39) * 2))]
+                f"Start-Process powershell -Verb RunAs -ArgumentList '{arguments.replace(chr(39), chr(39) * 2)}'"]
     r = subprocess.run(commande, capture_output=True, encoding="utf-8", errors="replace", creationflags=SANS_FENETRE)
     if r.returncode:
         return {"ok": False, "message": tr("assistant.confirmation_windows_refusee_ou_impossible")}
     return {"ok": True, "message": tr("assistant.suivez_la_fenetre_administrateur_qui")}
 
 
+# ---------- Docker Desktop (recherche web, messagerie, n8n) ----------
+# Parcours : absent -> installation (licence acceptee, WSL 2, winget, groupe docker-users ; une seule confirmation
+# Windows) -> redemarrage annonce, puis reprise automatique de l'assistant a la meme etape -> Docker demarre -> conteneurs.
+MODULES_DOCKER = ("recherche", "messagerie", "n8n")
+RESULTAT_DOCKER = reglages.DONNEES / "docker-installation.json"
+
+
+def _ps_docker(commande, delai=120):
+    """Execute une fonction de outils/docker.ps1 (memes regles que le lanceur) et renvoie sa sortie."""
+    script = f". '{INSTALLATION / 'outils' / 'langue.ps1'}'; . '{INSTALLATION / 'outils' / 'docker.ps1'}'; {commande}"
+    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], timeout=delai,
+                       capture_output=True, encoding="utf-8", errors="replace", creationflags=SANS_FENETRE)
+    return (r.stdout or "").strip()
+
+
+def _demarrage_windows():
+    """Heure du dernier demarrage de Windows (secondes depuis 1970)."""
+    ctypes.windll.kernel32.GetTickCount64.restype = ctypes.c_ulonglong
+    return time.time() - ctypes.windll.kernel32.GetTickCount64() / 1000
+
+
+def etat_docker():
+    """absent | sans_droits | a_reconnecter | redemarrage | arrete | pret (Docker repond)."""
+    etat = _ps_docker("Etat-Docker", 60) or "inconnu"
+    if etat != "pret" and RESULTAT_DOCKER.exists() and RESULTAT_DOCKER.stat().st_mtime > _demarrage_windows():
+        try:
+            if json.loads(RESULTAT_DOCKER.read_text(encoding="utf-8-sig")).get("redemarrage"):
+                etat = "redemarrage"   # installation faite depuis le dernier demarrage : Windows doit redemarrer
+        except ValueError:
+            pass
+    return {"etat": etat}
+
+
+def installer_docker(etape="modules"):
+    """WSL 2 + Docker Desktop (winget, source officielle) + groupe docker-users, dans UNE fenetre administrateur.
+    Appele seulement par installer_composant, donc apres la case « J'accepte » sous la licence de Docker."""
+    def travail():
+        _noter("docker", message=tr("docker.fenetre_admin"))
+        try:
+            RESULTAT_DOCKER.unlink(missing_ok=True)
+        except OSError:
+            pass
+        script = INSTALLATION / "outils-admin" / "installer_docker.ps1"
+        arguments = (f'-NoProfile -ExecutionPolicy Bypass -File "{script}" -Utilisateur "{_compte()}" '
+                     f'-Langue {langue.code()} -LicencesAcceptees -Resultat "{RESULTAT_DOCKER}"')
+        r = subprocess.run(["powershell", "-NoProfile", "-Command",
+                            f"Start-Process powershell -Verb RunAs -Wait -ArgumentList '{arguments.replace(chr(39), chr(39) * 2)}'"],
+                           capture_output=True, encoding="utf-8", errors="replace", creationflags=SANS_FENETRE)
+        if r.returncode:
+            raise RuntimeError(tr("assistant.confirmation_windows_refusee_ou_impossible"))
+        try:
+            resultat = json.loads(RESULTAT_DOCKER.read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError):
+            resultat = {}
+        if not resultat.get("ok"):
+            raise RuntimeError(resultat.get("message") or tr("docker.installation_interrompue"))
+        _preparer_searxng()
+        return tr("docker.fin_redemarrage") if resultat.get("redemarrage") else tr("docker.fin_ok")
+    return _en_fond("docker", travail)
+
+
+CLE_RUNONCE = r"Software\Microsoft\Windows\CurrentVersion\RunOnce"
+
+
+def redemarrer_windows(etape, mode):
+    """Redemarrage annonce (60 s, annulable) : Agent Local se relancera une fois a l'ouverture de session et rouvrira
+    l'assistant (ou les Reglages) a la meme etape."""
+    import winreg
+    conf = reglages.brut()
+    conf["reprise_assistant"] = {"mode": "reglages" if mode == "reglages" else "assistant", "etape": str(etape)}
+    reglages.enregistrer(conf)
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, CLE_RUNONCE) as cle:
+        winreg.SetValueEx(cle, "AgentLocalReprise", 0, winreg.REG_SZ,
+                          f'powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File '
+                          f'"{INSTALLATION / "lancer_agent_local.ps1"}"')
+    r = subprocess.run(["shutdown", "/r", "/t", "60", "/c", tr("docker.message_redemarrage")], creationflags=SANS_FENETRE)
+    return {"ok": r.returncode == 0}
+
+
+def annuler_redemarrage():
+    import winreg
+    subprocess.run(["shutdown", "/a"], creationflags=SANS_FENETRE)
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, CLE_RUNONCE, 0, winreg.KEY_SET_VALUE) as cle:
+            winreg.DeleteValue(cle, "AgentLocalReprise")
+    except OSError:
+        pass
+    effacer_reprise()
+    return {"ok": True}
+
+
+def effacer_reprise():
+    conf = reglages.brut()
+    if conf.pop("reprise_assistant", None) is not None:
+        reglages.enregistrer(conf)
+    return {"ok": True}
+
+
+def demarrer_docker(modules):
+    """Demarre Docker Desktop (si le compte en a le droit), puis les conteneurs des modules choisis."""
+    choisis = [m for m in (modules or []) if m in MODULES_DOCKER]
+
+    def travail():
+        _noter("docker_demarrage", message=tr("lanceur.docker_lancement"))
+        if "recherche" in choisis:
+            _preparer_searxng()
+        liste = ",".join(f"'{m}'" for m in choisis) or "''"
+        sortie = _ps_docker(f"if (Demarrer-Docker) {{ Demarrer-Conteneurs '{reglages.DONNEES}' @({liste}) }} "
+                            f"else {{ 'docker=echec' }}", 1200)
+        lignes = dict(l.split("=", 1) for l in sortie.splitlines() if "=" in l)
+        if lignes.get("docker") == "echec":
+            raise RuntimeError(tr("lanceur.docker_pas_pret"))
+        echecs = [m for m, e in lignes.items() if e not in ("ok", "occupe")]
+        if echecs:
+            raise RuntimeError(tr("docker.conteneurs_echec", v1=", ".join(tr("as.module_" + m) for m in echecs)))
+        return tr("docker.tout_pret")
+    return _en_fond("docker_demarrage", travail)
+
+
+# ---------- n8n (automatisations), dans Docker ----------
+N8N = "http://127.0.0.1:5678"
+
+
+def _n8n_repond():
+    try:
+        urllib.request.urlopen(N8N + "/healthz", timeout=3)
+        return True
+    except Exception:
+        return False
+
+
+def installer_n8n():
+    """Apres la case « J'accepte » (Sustainable Use License) : conteneur n8n (image officielle figee, volume persistant,
+    port 5678 sur 127.0.0.1 seulement). Docker doit etre pret : sinon, le parcours Docker est propose au-dessus."""
+    def travail():
+        if etat_docker()["etat"] not in ("pret", "arrete"):
+            raise RuntimeError(tr("n8n.docker_d_abord"))
+        _noter("n8n", message=tr("n8n.telechargement"))
+        sortie = _ps_docker(f"if (Demarrer-Docker) {{ Demarrer-Conteneurs '{reglages.DONNEES}' @('n8n') }} else {{ 'docker=echec' }}", 1800)
+        if "n8n=ok" not in sortie and "n8n=occupe" not in sortie:
+            raise RuntimeError(tr("lanceur.docker_pas_pret") if "docker=echec" in sortie else tr("n8n.echec_conteneur"))
+        for _ in range(60):   # premier demarrage : n8n prepare sa base, jusqu'a 2 minutes
+            if _n8n_repond():
+                return tr("n8n.pret")
+            time.sleep(2)
+        raise RuntimeError(tr("n8n.ne_repond_pas"))
+    return _en_fond("n8n", travail)
+
+
+def etat_n8n():
+    cle = Path(reglages.chemin_secret("n8n-cle-mcp.txt"))
+    return {"repond": _n8n_repond(), "cle": cle.is_file() and bool(cle.read_text(encoding="utf-8").strip()),
+            "actif": reglages.brut().get("modules", {}).get("n8n") is True}
+
+
+def ouvrir_n8n():
+    import webbrowser
+    webbrowser.open(N8N)
+    return {"ok": True}
+
+
+def tester_n8n():
+    """Teste le jeton colle par l'utilisateur sur le serveur MCP de n8n ; s'il est accepte, active le module n8n."""
+    cle = Path(reglages.chemin_secret("n8n-cle-mcp.txt"))
+    jeton = cle.read_text(encoding="utf-8").strip() if cle.is_file() else ""
+    if not jeton:
+        return {"ok": False, "message": tr("n8n.cle_absente")}
+    if not _n8n_repond():
+        return {"ok": False, "message": tr("n8n.ne_repond_pas")}
+    corps = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                        "params": {"protocolVersion": "2025-03-26", "capabilities": {},
+                                   "clientInfo": {"name": "agent-local", "version": VERSION}}}).encode()
+    demande = urllib.request.Request(N8N + "/mcp-server/http", data=corps, method="POST", headers={
+        "Authorization": f"Bearer {jeton}", "Content-Type": "application/json", "Accept": "application/json, text/event-stream"})
+    try:
+        urllib.request.urlopen(demande, timeout=15).close()
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return {"ok": False, "message": tr("n8n.cle_refusee")}
+        return {"ok": False, "message": tr("n8n.erreur_v1", v1=e.code)}
+    except Exception as e:
+        return {"ok": False, "message": tr("n8n.erreur_v1", v1=e)}
+    _activer_module("n8n")
+    return {"ok": True, "message": tr("n8n.connecte")}
+
+
 def etat_admin():
     """Etat des outils administrateur, et dernier refus du controle d'integrite (affiche en clair dans Reglages)."""
     def tache(nom):
         return subprocess.run(["schtasks", "/query", "/tn", nom], capture_output=True, creationflags=SANS_FENETRE).returncode == 0
-    journal = Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "AgentLocalSante" / "controle_integrite.log"
+    journal = Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "AgentLocal" / "Sante" / "controle_integrite.log"
     refus = ""
     if journal.exists():
         lignes = journal.read_text(encoding="utf-8-sig", errors="replace").strip().splitlines()
         refus = lignes[-1] if lignes else ""
-    return {"sante": tache("AutorunsAgent") and tache("LibreHardwareMonitor"), "reparation": tache("ReparationAgent"),
+    return {"sante": tache(r"\AgentLocal\Autoruns") and tache(r"\AgentLocal\LibreHardwareMonitor"),
+            "reparation": tache(r"\AgentLocal\Reparation"),
             "dernier_refus_integrite": refus}
 
 
@@ -532,8 +717,8 @@ def desinstaller(supprimer_modeles=False, supprimer_secrets=False):
 
 def recapitulatif_desinstallation(supprimer_modeles=False, supprimer_secrets=False):
     """Ce que la desinstallation retirera, affiche AVANT de demander la confirmation."""
-    elements = [tr("assistant.taches_planifiees_d_agent_local"), r"C:\Program Files\AgentLocalOutils",
-                r"C:\ProgramData\AgentLocalSante, AgentLocalDisques, AgentLocalReparation", tr("assistant.raccourci_bureau_agent_local")]
+    elements = [tr("assistant.taches_planifiees_d_agent_local"), r"C:\Program Files\AgentLocal",
+                r"C:\ProgramData\AgentLocal", tr("assistant.raccourci_bureau_agent_local")]
     if supprimer_modeles:
         elements += [str(MODELES), str(MOTEUR), tr("assistant.environnements_de_la_dictee_et")]
     if supprimer_secrets:
@@ -655,7 +840,8 @@ def reglages_lire():
     conf = reglages.brut()
     return {"config": {r: conf.get(r, {}) for r in CHAMPS_MODIFIABLES} | {"premier_lancement_fait": conf.get("premier_lancement_fait") is True},
             "langues": langue.disponibles(), "langue": langue.code(), "niveaux": list(reglages.NIVEAUX),
-            "composants": COMPOSANTS, "version": VERSION, "installation": str(INSTALLATION)}
+            "composants": COMPOSANTS, "version": VERSION, "installation": str(INSTALLATION),
+            "reprise": conf.get("reprise_assistant")}
 
 
 def reglages_enregistrer(modifs):
@@ -698,5 +884,6 @@ FONCTIONS_FENETRE = {
     "lancer_admin", "etat_admin", "desinstaller", "recapitulatif_desinstallation", "verifier_mises_a_jour",
     "installer_mise_a_jour", "tester_modele", "donnees_souvenirs", "donnees_oublier", "donnees_oublier_tout",
     "donnees_vider_conversations", "donnees_vider_journal", "reglages_lire", "reglages_enregistrer",
-    "terminer_assistant", "relancer",
+    "terminer_assistant", "relancer", "etat_docker", "demarrer_docker", "redemarrer_windows", "annuler_redemarrage",
+    "effacer_reprise", "etat_n8n", "ouvrir_n8n", "tester_n8n",
 }

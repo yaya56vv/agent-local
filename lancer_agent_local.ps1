@@ -6,6 +6,7 @@
 param([switch]$AttendreFermeture)   # relance depuis la fenetre (assistant, Reglages) : attendre qu'elle se ferme
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'outils\langue.ps1')
+. (Join-Path $PSScriptRoot 'outils\docker.ps1')
 $installation = $PSScriptRoot
 $noyau = Join-Path $installation 'noyau'
 $donnees = Join-Path $noyau 'donnees'
@@ -127,32 +128,24 @@ if ($config.premier_lancement_fait) {
     }
 }
 
-# 4. Docker Desktop : seulement si un module en a besoin (recherche web, messagerie, n8n)
-if ($config.premier_lancement_fait -and ($modules.recherche -or $modules.messagerie -or $modules.n8n)) {
-    docker info *> $null
-    if ($LASTEXITCODE -eq 0) { Ok (T 'lanceur.docker_tourne') }
+# 4. Docker Desktop et conteneurs : seulement si un module qui en a besoin est active (recherche web, messagerie, n8n).
+#    Docker n'est jamais lance pour un compte hors du groupe docker-users (il planterait et proposerait de tout effacer).
+$modulesDocker = @($MODULES_DOCKER | Where-Object { $modules.$_ })
+if ($config.premier_lancement_fait -and $modulesDocker) {
+    if (Docker-Repond) { Ok (T 'lanceur.docker_tourne') }
+    elseif (-not (Docker-Installe)) { Attention (T 'lanceur.docker_introuvable') }
+    elseif (-not (Verifier-GroupeDocker $installation $config.utilisateur.langue)) { Attention (T 'docker.sans_docker') }
     else {
-        $exeDocker = Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe'
-        if (Test-Path $exeDocker) {
-            Start-Process -FilePath $exeDocker
-            Write-Host "  $(T 'lanceur.docker_lancement')"
-            for ($i = 0; $i -lt 40; $i++) { Start-Sleep 3; docker info *> $null; if ($LASTEXITCODE -eq 0) { break } }
-            if ($LASTEXITCODE -eq 0) { Ok (T 'lanceur.docker_pret') } else { Attention (T 'lanceur.docker_pas_pret') }
-        } else { Attention (T 'lanceur.docker_introuvable') }
+        Write-Host "  $(T 'lanceur.docker_lancement')"
+        if (Demarrer-Docker) { Ok (T 'lanceur.docker_pret') } else { Attention (T 'lanceur.docker_pas_pret') }
     }
-}
-# SearXNG (recherche web) : conteneur epingle par empreinte, joignable depuis ce PC seulement
-if ($config.premier_lancement_fait -and $modules.recherche) {
-    docker info *> $null
-    if ($LASTEXITCODE -eq 0) {
-        $existe = docker ps -a --filter 'name=^agent-local-searxng$' --format '{{.Names}}'
-        if ($existe) { docker start agent-local-searxng *> $null }
-        else {
-            docker run -d --name agent-local-searxng --restart unless-stopped -p 127.0.0.1:8080:8080 `
-                -v "$(Join-Path $donnees 'searxng'):/etc/searxng" `
-                'searxng/searxng@sha256:c750ee1d859b26d3aeae51c07f6a48c3a0bfbaa9195d71a18b258862d88c4c3c' *> $null
+    if (Docker-Repond) {
+        foreach ($ligne in (Demarrer-Conteneurs $donnees $modulesDocker)) {
+            $m, $e = $ligne -split '=', 2
+            if ($e -eq 'ok') { Ok (T 'lanceur.conteneur_pret' @{ v1 = (T "as.module_$m") }) }
+            elseif ($e -eq 'occupe') { Ok (T 'lanceur.conteneur_occupe' @{ v1 = (T "as.module_$m") }) }
+            else { Attention (T 'lanceur.conteneur_echec' @{ v1 = (T "as.module_$m") }) }
         }
-        if ($LASTEXITCODE -eq 0) { Ok (T 'lanceur.searxng_pret') } else { Attention (T 'lanceur.searxng_echec') }
     }
 }
 

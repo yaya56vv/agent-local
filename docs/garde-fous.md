@@ -37,8 +37,9 @@ Design principle: **protection is in the code, not only in the model instruction
 ## Administrator tools (optional, `outils-admin/`)
 
 - **Repair kit**: the agent only chooses an action from a closed list. Before each action, a window "Agent Local - Administrator confirmation" opens on the screen. Since it belongs to an administrator process, Windows prevents a regular program from clicking it: a false request placed by malicious software cannot do anything without your click. Without response in 10 minutes, the action is refused.
-- **PC Health**: tools launched as administrator are copied to `C:\Program Files\AgentLocalOutils`, where only administrators can write. At each launch, Autoruns must have a valid Microsoft signature, and each LibreHardwareMonitor code file must have the SHA-256 fingerprint recorded at installation. A changed, missing or extra file blocks the launch, which Settings displays clearly, with a "Repair / Update" button.
+- **PC Health**: tools launched as administrator are copied to `C:\Program Files\AgentLocal\Outils`, where only administrators can write. At each launch, Autoruns must have a valid Microsoft signature, and each LibreHardwareMonitor code file must have the SHA-256 fingerprint recorded at installation. A changed, missing or extra file blocks the launch, which Settings displays clearly, with a "Repair / Update" button.
 - Rights are verified by security identifier (SID), which works regardless of Windows language.
+- **Never a silent overwrite**: these scripts only use their own names (`C:\ProgramData\AgentLocal`, `C:\Program Files\AgentLocal`, the `\AgentLocal\` folder of Task Scheduler). If they find an item with that name that they did not create, they show it and ask you to type YES before replacing it.
 
 ## Secrets
 

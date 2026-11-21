@@ -19,7 +19,7 @@ from langue import t as tr
 serveur = FastMCP("sante")
 LECTURE = ToolAnnotations(readOnlyHint=True)
 URL_LHM = "http://127.0.0.1:8085/data.json"
-TACHE_LHM = "LibreHardwareMonitor"
+TACHE_LHM = r"\AgentLocal\LibreHardwareMonitor"
 
 
 def _nombre(texte):
@@ -215,21 +215,21 @@ def incidents_graves(jours: int = 30) -> str:
 
 # --- Sysinternals (14/11/2026) ---------------------------------------------------------
 # Copie protegee (ecriture reservee aux administrateurs) depuis le 20/11/2026 (renforcement des garde-fous) :
-# outils-admin\installer_sante.ps1 ; la tache AutorunsAgent controle sa signature Microsoft avant de la lancer.
-AUTORUNSC = r"C:\Program Files\AgentLocalOutils\Autoruns\autorunsc64.exe"
+# outils-admin\installer_sante.ps1 ; la tache \AgentLocal\Autoruns controle sa signature Microsoft avant de la lancer.
+AUTORUNSC = r"C:\Program Files\AgentLocal\Outils\Autoruns\autorunsc64.exe"
 CATEGORIES_BRUIT = {"Known DLLs", "Codecs", "Winsock Providers", "Print Monitors", "LSA Providers", "Network Providers"}
 
 
 @serveur.tool(annotations=LECTURE, description=tr("outil.sante.demarrage_windows"))
 def demarrage_windows() -> str:
     import csv, io, os, tempfile
-    # 1) Version complete : tache planifiee « AutorunsAgent » (administrateur, sans invite), qui ecrit ce fichier
-    sortie = r"C:\ProgramData\AgentLocalSante\autoruns.csv"   # dossier protege (20/11/2026), lecture seule pour l'utilisateur
+    # 1) Version complete : tache planifiee \AgentLocal\Autoruns (administrateur, sans invite), qui ecrit ce fichier
+    sortie = r"C:\ProgramData\AgentLocal\Sante\autoruns.csv"   # dossier protege (20/11/2026), lecture seule pour l'utilisateur
     debut, admin = time.time(), False
-    subprocess.run(["schtasks", "/run", "/tn", "AutorunsAgent"], capture_output=True, timeout=20)
+    subprocess.run(["schtasks", "/run", "/tn", r"\AgentLocal\Autoruns"], capture_output=True, timeout=20)
     while time.time() - debut < 150:
         time.sleep(5)
-        etat = subprocess.run(["schtasks", "/query", "/tn", "AutorunsAgent", "/fo", "csv", "/nh"],
+        etat = subprocess.run(["schtasks", "/query", "/tn", r"\AgentLocal\Autoruns", "/fo", "csv", "/nh"],
                               capture_output=True, timeout=20, encoding="utf-8", errors="replace").stdout
         if os.path.exists(sortie) and os.path.getmtime(sortie) > debut and "Running" not in etat and "cours" not in etat:
             admin = True
@@ -278,14 +278,14 @@ def demarrage_windows() -> str:
     return "\n".join(rapport)
 
 
-DISKINFO = r"C:\ProgramData\AgentLocalDisques\DiskInfo.txt"
+DISKINFO = r"C:\ProgramData\AgentLocal\Disques\DiskInfo.txt"
 
 
 @serveur.tool(annotations=LECTURE, description=tr("outil.sante.sante_disques"))
 def sante_disques() -> str:
     import os
     avant = os.path.getmtime(DISKINFO) if os.path.exists(DISKINFO) else 0
-    subprocess.run(["schtasks", "/run", "/tn", "DisquesAgent"], capture_output=True, timeout=20)
+    subprocess.run(["schtasks", "/run", "/tn", r"\AgentLocal\Disques"], capture_output=True, timeout=20)
     for _ in range(60):
         time.sleep(1)
         if os.path.exists(DISKINFO) and os.path.getmtime(DISKINFO) > avant:

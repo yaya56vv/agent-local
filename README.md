@@ -62,8 +62,23 @@ Why at least 65,536 tokens? At every step, the agent re-reads the description of
    4. **modules** to tick, with a "Test" button for the voice and the dictation, each component's licence and an "I accept" box;
    5. optional **administrator tools** (PC health, repair kit), installed with Windows' confirmation.
 
+If you tick web search, mail or n8n, the wizard checks Docker Desktop. If it is missing, it installs it (licence shown, "I accept" box, official winget source, WSL 2 if needed, your account's permissions), warns you before the required restart, then resumes by itself at the same step.
+
 You never edit a file by hand: everything can be changed later in **⚙ Settings**.
 Details: [docs/installation.md](docs/installation.md).
+
+### Your first n8n workflow
+
+Agent Local does not provide any workflows: you create your own in n8n (installed from the wizard or **Settings → Modules**, n8n box).
+
+1. Open n8n at `http://localhost:5678`, then click "Create workflow".
+2. Add the "Webhook" trigger (workflows visible to the agent must start with a Webhook, a Schedule, a Form or a Chat).
+3. Add a simple action, such as "Edit Fields (Set)" to return text, or "Send Email".
+4. Click "Save" and give the workflow a clear name and description: the agent picks workflows based on them.
+5. In the workflow's Settings, check "Available in MCP", then activate the workflow ("Active" / "Publish").
+6. In Agent Local, ask for example "run my workflow X": the agent always asks for your approval before each run.
+
+The n8n account and workflows are stored in the Docker volume `agent-local-n8n`, which is kept when the container is recreated.
 
 ---
 

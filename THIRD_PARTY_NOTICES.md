@@ -20,7 +20,7 @@ télécharge depuis leur source officielle après acceptation de leur licence pa
 | **Sysinternals Autoruns** | PC health | **Microsoft Sysinternals licence (proprietary, not redistributable)** | winget (Microsoft.Sysinternals.Autoruns) | downloaded from Microsoft by winget |
 | LibreHardwareMonitor | temperatures | MPL-2.0 | winget | |
 | CrystalDiskInfo | disk health | MIT | winget | |
-| **Docker Desktop** | runs SearXNG and the mail server | **Docker Subscription Service Agreement** | winget (Docker.DockerDesktop) | free for personal use, education, open source and companies under 250 employees AND under USD 10 million revenue |
+| **Docker Desktop** | runs SearXNG and n8n | **Docker Subscription Service Agreement** | winget (Docker.DockerDesktop) | free for personal use, education, open source and companies under 250 employees AND under USD 10 million revenue |
 | SearXNG | web search | AGPL-3.0 | Docker Hub (searxng/searxng, pinned by digest) | separate service queried over HTTP |
 | mcp-email-server (ai-zerolab) | mail module | BSD-3-Clause | ghcr.io, pinned by digest | |
 | **python-libzim** | offline Wikipedia | **GPL-3.0** | PyPI | optional module, installed only if enabled |
@@ -29,7 +29,7 @@ télécharge depuis leur source officielle après acceptation de leur licence pa
 | Playwright MCP 0.0.83 | browser | Apache-2.0 | npm | |
 | @modelcontextprotocol/server-filesystem 2.0.0 | files | MIT | npm | |
 | mcp-remote 0.15.2 | n8n bridge | MIT | npm | |
-| **n8n** | automations (optional) | **Sustainable Use License (not open source)** | installed by the user | internal use only |
+| **n8n** | automations (optional) | **Sustainable Use License (not open source)** | Docker Hub (n8nio/n8n 2.46.6, pinned by digest), installed by the wizard after you accept its licence | personal or internal use only |
 | Hermes Agent (Nous Research) | external agent (optional) | MIT | installed by the user | acts outside Agent Local's safeguards |
 | OpenRouter | cloud advisor (optional) | OpenRouter terms | online service | paid; data sent to a third party, each sending needs approval |
 | Telegram Bot API | remote control (optional) | Telegram terms | online service | |
