@@ -215,7 +215,7 @@ const SECTIONS = {
       </div>
       <div class="as-carte"><h3>${T('as.moteur')} <span class="as-pastille p-local">${T('as.local')}</span></h3>
         <p>${T('as.moteur_aide')}</p>
-        <div class="as-ligne"><button class="as-btn" id="as-moteur">${T('as.installer_moteur')}</button><span class="as-mono as-gris" id="as-pilote"></span></div>
+        <div class="as-ligne">${DETECT.moteur_present ? `<span class="as-mono p-local">✓ ${T('as.moteur_deja_installe')}</span>` : ''}<button class="as-btn ${DETECT.moteur_present ? 'discret petit' : ''}" id="as-moteur">${DETECT.moteur_present ? T('as.reinstaller') : T('as.installer_moteur')}</button><span class="as-mono as-gris" id="as-pilote"></span></div>
         ${zoneTravail('moteur')}</div>
       ${mode === 'reglages' ? `<div class="as-carte"><h3>${T('as.tester_modele')}</h3><p>${T('as.tester_modele_aide')}</p>
         <div class="as-ligne"><button class="as-btn" id="as-tester-modele">${T('as.tester')}</button></div><div id="as-test-modele" class="as-mono"></div></div>
@@ -324,7 +324,9 @@ const LIENS = {
       zone.innerHTML = source === 'conseille' && p ? `<div class="as-carte choisie"><h3>${echappe(p.nom)} <span class="as-pastille p-reco">${T('as.recommande')}</span></h3>
           <p>${T('as.telecharger_aide', { v1: echappe(p.depot) })}</p>
           <label class="as-choix"><input type="checkbox" id="as-vision" ${valeurConf('modules', 'vision', true) ? 'checked' : ''}> ${T('as.avec_vision')}</label>
-          <div class="as-ligne"><button class="as-btn principal" id="as-telecharger">${T('as.telecharger')}</button></div>${zoneTravail('modele')}</div>`
+          <div class="as-ligne">${DETECT.modele_present && String(valeurConf('lanceur', 'modele')).endsWith(p.fichier)
+            ? `<span class="as-mono p-local">✓ ${T('as.deja_telecharge')}</span>`
+            : `<button class="as-btn principal" id="as-telecharger">${T('as.telecharger')}</button>`}</div>${zoneTravail('modele')}</div>`
         : `<label class="as-champ" for="as-gguf">${T('as.fichier_gguf')}<span class="as-saisie"><input type="text" id="as-gguf" value="${echappe(valeurConf('lanceur', 'modele'))}">
           <button class="as-btn" id="as-choisir-gguf">${T('as.parcourir')}</button></span></label>
           <label class="as-champ" for="as-mmproj">${T('as.fichier_mmproj')}<input type="text" id="as-mmproj" value="${echappe(valeurConf('lanceur', 'mmproj'))}"></label>`;

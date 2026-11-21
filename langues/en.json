@@ -1053,5 +1053,8 @@
  "ui.agent_v2.voici_piece_jointe": "Here is an attachment.",
  "assistant.voix_femme": "female",
  "assistant.voix_homme": "male",
- "as.erreur_enregistrement": "Saving failed:"
+ "as.erreur_enregistrement": "Saving failed:",
+ "as.deja_telecharge": "already downloaded and checked",
+ "as.moteur_deja_installe": "llama.cpp already installed",
+ "as.reinstaller": "Reinstall"
 }

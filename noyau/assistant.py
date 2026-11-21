@@ -133,6 +133,7 @@ def detecter():
     """Ce que l'ecran 2 affiche : cartes, memoire vive, disque libre, palier conseille, ou refus honnete."""
     liste = cartes()
     principale = max(liste, key=lambda c: c["memoire_go"], default=None)
+    lanceur = reglages.charger().get("lanceur", {})
     palier = palier_pour(principale["memoire_go"]) if principale else None
     if not principale:
         refus = (tr("assistant.aucune_carte_graphique_nvidia_n"))
@@ -142,7 +143,10 @@ def detecter():
         refus = ""
     return {"cartes": liste, "principale": principale, "ram_go": _ram_go(),
             "disque_libre_go": round(shutil.disk_usage(INSTALLATION).free / 2**30), "palier": palier,
-            "paliers": PALIERS, "contextes": CONTEXTES, "refus": refus}
+            "paliers": PALIERS, "contextes": CONTEXTES, "refus": refus,
+            # deja installe (assistant interrompu puis repris) : ne jamais faire retelecharger 17 Go pour rien
+            "modele_present": bool(lanceur.get("modele")) and Path(lanceur["modele"]).is_file(),
+            "moteur_present": bool(lanceur.get("llama_server")) and Path(lanceur["llama_server"]).is_file()}
 
 
 def choisir_dictee(carte_modele, palier, toutes):

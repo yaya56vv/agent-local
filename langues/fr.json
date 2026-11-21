@@ -1053,5 +1053,8 @@
  "ui.agent_v2.voici_piece_jointe": "Voici une pièce jointe.",
  "assistant.voix_femme": "femme",
  "assistant.voix_homme": "homme",
- "as.erreur_enregistrement": "L'enregistrement a échoué :"
+ "as.erreur_enregistrement": "L'enregistrement a échoué :",
+ "as.deja_telecharge": "déjà téléchargé et vérifié",
+ "as.moteur_deja_installe": "llama.cpp déjà installé",
+ "as.reinstaller": "Réinstaller"
 }
