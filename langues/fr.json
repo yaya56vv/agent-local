@@ -1052,5 +1052,6 @@
  "ui.agent_v2.autorisation_requise": "autorisation requise",
  "ui.agent_v2.voici_piece_jointe": "Voici une pièce jointe.",
  "assistant.voix_femme": "femme",
- "assistant.voix_homme": "homme"
+ "assistant.voix_homme": "homme",
+ "as.erreur_enregistrement": "L'enregistrement a échoué :"
 }

@@ -650,6 +650,8 @@ def reglages_enregistrer(modifs):
     redemarrer = False
     for rubrique, valeurs in (modifs or {}).items():
         permis = CHAMPS_MODIFIABLES.get(rubrique, set())
+        if not permis or not isinstance(valeurs, dict):
+            continue   # rubrique inconnue : ignoree (jamais d'erreur qui bloquerait l'assistant)
         for cle, valeur in valeurs.items():
             if cle not in permis or conf.get(rubrique, {}).get(cle) == valeur:
                 continue

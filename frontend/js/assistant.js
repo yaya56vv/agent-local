@@ -4,7 +4,7 @@ const A = (fonction, ...args) => window.pywebview.api.assistant(fonction, args);
 const echappe = (s) => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
 const ETAPES = ['vous', 'modele', 'autonomie', 'modules', 'admin'];
 const RUBRIQUES = ['vous', 'modele', 'autonomie', 'modules', 'admin', 'cles', 'donnees', 'avance'];
-let REG = null, DETECT = null, mode = 'assistant', courant = 'vous', suivi = null, modifs = {};
+let REG = null, DETECT = null, mode = 'assistant', courant = 'vous', suivi = null, modifs = {}, sourceChoisie = null;
 
 function noter(rubrique, cle, valeur) { (modifs[rubrique] ||= {})[cle] = valeur; }
 function valeurConf(rubrique, cle, defaut = '') {
@@ -57,10 +57,14 @@ function dessiner() {
         <button class="as-btn principal" id="as-suivant">${i === ETAPES.length - 1 ? T('as.terminer') : T('as.suivant_' + ETAPES[i + 1])}</button>
       </div></div>`;
     v.querySelector('#as-retour').onclick = async () => { await enregistrer(); courant = ETAPES[i - 1]; dessiner(); };
-    v.querySelector('#as-suivant').onclick = async () => {
-      if (!(await enregistrer())) return;
-      if (i === ETAPES.length - 1) { await A('terminer_assistant'); return; }
-      courant = ETAPES[i + 1]; dessiner();
+    v.querySelector('#as-suivant').onclick = async (e) => {
+      try {
+        if (!(await enregistrer())) return;
+        if (i === ETAPES.length - 1) { await A('terminer_assistant'); return; }
+        courant = ETAPES[i + 1]; dessiner();
+      } catch (erreur) {   // ne jamais laisser l'utilisateur bloque sans explication
+        e.target.insertAdjacentText('beforebegin', `${T('as.erreur_enregistrement')} ${erreur?.message || erreur} `);
+      }
     };
     const passer = v.querySelector('#as-passer');
     if (passer) passer.onclick = async () => { await enregistrer(); await A('terminer_assistant'); };
@@ -183,7 +187,7 @@ const SECTIONS = {
   modele: () => {
     if (!DETECT) return `<p class="as-gris">${T('as.detection_en_cours')}</p>`;
     const p = DETECT.palier, pr = DETECT.principale;
-    const source = valeurConf('lanceur', 'modele') && !p ? 'gguf' : (modifs._source || 'conseille');
+    const source = valeurConf('lanceur', 'modele') && !p ? 'gguf' : (sourceChoisie || 'conseille');
     const cartes = DETECT.cartes.map((c) => `<option value="${c.index}" ${String(valeurConf('lanceur', 'carte_principale', '') === '' ? (pr?.index ?? 0) : valeurConf('lanceur', 'carte_principale')) === String(c.index) ? 'selected' : ''}>
       ${echappe(c.nom)} — ${String(c.memoire_go).replace('.', T('as.separateur_decimal'))} ${T('as.unite_go')}</option>`).join('');
     return `<h2>${T('as.modele_titre')}</h2><p class="as-sous">${T('as.modele_sous')}</p>
@@ -316,7 +320,7 @@ const LIENS = {
     const zone = v.querySelector('#as-zone-source');
     const dessinerSource = () => {
       const source = v.querySelector('#as-source').value;
-      modifs._source = source;
+      sourceChoisie = source;   // choix d'affichage, pas un reglage : jamais envoye au noyau
       zone.innerHTML = source === 'conseille' && p ? `<div class="as-carte choisie"><h3>${echappe(p.nom)} <span class="as-pastille p-reco">${T('as.recommande')}</span></h3>
           <p>${T('as.telecharger_aide', { v1: echappe(p.depot) })}</p>
           <label class="as-choix"><input type="checkbox" id="as-vision" ${valeurConf('modules', 'vision', true) ? 'checked' : ''}> ${T('as.avec_vision')}</label>
