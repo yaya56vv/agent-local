@@ -15,7 +15,7 @@ Toujours inclus : mémoire (carnet), fichiers, PDF, Word et Excel, terminal Powe
 | Pilotage de Windows | ouvrir des logiciels, cliquer, taper | Windows-MCP 0.8.5 (PyPI) | aucune |
 | Wikipédia hors ligne | toute Wikipédia en français, sans Internet | libzim (GPL-3.0), fichier ZIM Kiwix (≈ 13 Go) | aucune |
 | Santé du PC | températures, disques, démarrage, journaux | Autoruns, LibreHardwareMonitor, CrystalDiskInfo (winget), tâches administrateur | aucune |
-| Trousse de réparation | 10 gestes de dépannage en administrateur, chacun confirmé dans une fenêtre | une tâche planifiée administrateur | aucune |
+| Trousse de réparation | 10 gestes de dépannage en administrateur, chacun confirmé dans une fenêtre | une tâche planifiée administrateur (compte standard : confirmation Windows à chaque geste) | aucune |
 
 ## Modules avancés (désactivés par défaut)
 

@@ -62,8 +62,32 @@ def _demander(geste, cible, attente):
     id_ = time.strftime("%Y%m%d-%H%M%S") + "-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
     with open(demande, "w", encoding="utf-8") as f:
         json.dump({"id": id_, "geste": geste, "cible": cible}, f)
-    subprocess.run(["schtasks", "/run", "/tn", TACHE], capture_output=True, timeout=20)
+    if _mode() == "uac":
+        # Compte standard : pas de tache planifiee. Windows demande le mot de passe d'un administrateur (UAC), puis la
+        # fenetre de confirmation du repartiteur s'affiche comme d'habitude.
+        repartiteur = os.path.join(BASE, "scripts", "repartiteur.ps1")
+        r = subprocess.run(["powershell", "-NoProfile", "-Command",
+                            "Start-Process powershell -Verb RunAs -WindowStyle Hidden -ArgumentList "
+                            f"'-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{repartiteur}\"'"],
+                           capture_output=True, timeout=600, creationflags=subprocess.CREATE_NO_WINDOW)
+        if r.returncode:   # confirmation Windows refusee ou fermee : la demande est retiree, rien n'a ete fait
+            try:
+                os.remove(demande)
+            except OSError:
+                pass
+            return None, tr("mcp_reparation.confirmation_windows_refusee")
+    else:
+        subprocess.run(["schtasks", "/run", "/tn", TACHE], capture_output=True, timeout=20)
     return id_, _attendre(id_, attente)
+
+
+def _mode():
+    """« tache » (compte administrateur) ou « uac » (compte standard), note par installer_reparation.ps1."""
+    try:
+        with open(os.path.join(BASE, "mode.json"), encoding="utf-8-sig") as f:
+            return json.load(f).get("mode", "tache")
+    except (OSError, ValueError):
+        return "tache"
 
 
 @serveur.tool(annotations=LECTURE, description=tr("outil.reparation.gestes_disponibles"))

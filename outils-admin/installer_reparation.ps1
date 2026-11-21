@@ -8,7 +8,10 @@
 #      points de restauration), une fenetre « Agent Local - confirmation administrateur » s'ouvre sur l'ecran : Windows
 #      interdit a un programme ordinaire d'y cliquer, donc un programme qui deposerait une fausse demande dans demande\
 #      ne peut rien faire sans le clic de l'utilisateur. Sans reponse en 10 minutes, le geste est refuse ;
-#   3. cree la tache planifiee \AgentLocal\Reparation (droits administrateur, lancee a la demande par Agent Local).
+#   3. compte ADMINISTRATEUR : tache planifiee \AgentLocal\Reparation (lancee a la demande par Agent Local).
+#      compte STANDARD : pas de tache (elle tournerait sans les droits administrateur) ; Agent Local lance le
+#      repartiteur avec la confirmation Windows (UAC, mot de passe administrateur) a chaque geste, PUIS la fenetre de
+#      confirmation du repartiteur s'affiche comme d'habitude. Le mode choisi est note dans mode.json (dossier protege).
 # Ne supprime rien.
 param([string]$Utilisateur = '', [string]$Langue = '')
 . (Join-Path $PSScriptRoot 'commun.ps1')
@@ -35,7 +38,8 @@ Etape (T 'admin.installer_reparation.2_repartiteur_liste_fermee_de')
 $tempUtilisateur = Join-Path $compte.Profil 'AppData\Local\Temp'
 $repartiteur = @'
 # Repartiteur de la trousse de reparation d'Agent Local. Lance en ADMINISTRATEUR par la tache planifiee
-# \AgentLocal\Reparation. N'execute QUE les gestes de la liste fermee ci-dessous ; la demande ne fait que choisir.
+# \AgentLocal\Reparation (compte administrateur) ou par la confirmation Windows (compte standard).
+# N'execute QUE les gestes de la liste fermee ci-dessous ; la demande ne fait que choisir.
 $base = Join-Path $env:ProgramData 'AgentLocal\Reparation'
 $dem = Join-Path $base 'demande\demande.json'
 if (-not (Test-Path $dem)) { exit }
@@ -133,7 +137,17 @@ Verifier-Protege $scripts
 Ok (T 'admin.installer_reparation.repartiteur_ecrit_fenetre_de_confirmation')
 
 Etape (T 'admin.installer_reparation.3_tache_planifiee')
-Enregistrer-Tache 'Reparation' (Action-PowerShell (Join-Path $scripts 'repartiteur.ps1')) $compte (New-TimeSpan -Hours 3)
+if (Est-Admin $compte) {
+    Enregistrer-Tache 'Reparation' (Action-PowerShell (Join-Path $scripts 'repartiteur.ps1')) $compte (New-TimeSpan -Hours 3)
+    $mode = 'tache'
+} else {
+    # Une tache creee avant cette version pour ce compte standard ne pourrait rien reparer : on retire la notre seulement.
+    $ancienne = Get-ScheduledTask -TaskPath $DOSSIER_TACHES -TaskName 'Reparation' -ErrorAction SilentlyContinue
+    if ($ancienne -and $ancienne.Description -like 'Agent Local (*') { Unregister-ScheduledTask -TaskPath $DOSSIER_TACHES -TaskName 'Reparation' -Confirm:$false }
+    Ok (T 'admin.installer_reparation.mode_uac' @{ v1 = ($compte.Nom) })
+    $mode = 'uac'
+}
+[IO.File]::WriteAllText((Join-Path $REPARATION 'mode.json'), "{`"mode`": `"$mode`"}", $BOM)
 
 Write-Host ''
 Write-Host (T 'admin.installer_reparation.termine') -ForegroundColor Green

@@ -735,6 +735,14 @@ def tester_n8n():
     return {"ok": True, "message": tr("n8n.connecte")}
 
 
+def _mode_reparation():
+    fichier = Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "AgentLocal" / "Reparation" / "mode.json"
+    try:
+        return json.loads(fichier.read_text(encoding="utf-8-sig")).get("mode", "")
+    except (OSError, ValueError):
+        return ""
+
+
 def etat_admin():
     """Etat des outils administrateur, et dernier refus du controle d'integrite (affiche en clair dans Reglages)."""
     def tache(nom):
@@ -745,7 +753,8 @@ def etat_admin():
         lignes = journal.read_text(encoding="utf-8-sig", errors="replace").strip().splitlines()
         refus = lignes[-1] if lignes else ""
     return {"sante": tache(r"\AgentLocal\Autoruns") and tache(r"\AgentLocal\LibreHardwareMonitor"),
-            "reparation": tache(r"\AgentLocal\Reparation"),
+            # compte standard : pas de tache, le repartiteur est lance avec la confirmation Windows (mode.json = uac)
+            "reparation": tache(r"\AgentLocal\Reparation") or _mode_reparation() == "uac",
             "dernier_refus_integrite": refus}
 
 

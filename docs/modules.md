@@ -15,7 +15,7 @@ Always included: memory (notebook), files, PDF, Word and Excel, PowerShell termi
 | Windows control | Open software, click, type | Windows-MCP 0.8.5 (PyPI) | none |
 | Offline Wikipedia | Full French Wikipedia, no Internet | libzim (GPL-3.0), Kiwix ZIM file (≈ 13 GB) | none |
 | PC Health | Temperatures, disks, boot, logs | Autoruns, LibreHardwareMonitor, CrystalDiskInfo (winget), admin tasks | none |
-| Repair Kit | 10 admin troubleshooting actions, each confirmed in a window | one scheduled task | none |
+| Repair Kit | 10 admin troubleshooting actions, each confirmed in a window | one scheduled task (standard account: Windows confirmation for each action) | none |
 
 ## Advanced modules (disabled by default)
 
