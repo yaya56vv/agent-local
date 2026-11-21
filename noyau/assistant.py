@@ -248,25 +248,36 @@ def _lire_json(url):
 
 
 def _telecharger(ident, url, destination, sha256=None):
-    """Telecharge (reprise possible), puis verifie l'empreinte SHA-256 si la source en publie une."""
+    """Telecharge (reprise possible), puis verifie l'empreinte SHA-256 si la source en publie une.
+    url peut etre une liste de miroirs (du plus rapide au plus lent) : si l'un coupe ou se bloque 30 s, on reprend
+    sur le suivant, a l'octet pres (Range). L'empreinte, elle, vient toujours de la source officielle."""
     destination = Path(destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     partiel = destination.with_suffix(destination.suffix + ".partiel")
-    deja = partiel.stat().st_size if partiel.exists() else 0
-    requete = urllib.request.Request(url, headers={**ENTETES, **({"Range": f"bytes={deja}-"} if deja else {})})
-    with urllib.request.urlopen(requete, timeout=60) as r:
-        if deja and r.status != 206:
-            deja = 0
-        total = deja + int(r.headers.get("Content-Length") or 0)
-        _noter(ident, total=total, fait=deja, message=tr("assistant.telechargement_de", v1=destination.name))
-        with open(partiel, "ab" if deja else "wb") as f:
-            while True:
-                bloc = r.read(1 << 20)
-                if not bloc:
-                    break
-                f.write(bloc)
-                deja += len(bloc)
-                _noter(ident, fait=deja)
+    sources = [url] if isinstance(url, str) else list(url)
+    for n, source in enumerate(sources):
+        deja = partiel.stat().st_size if partiel.exists() else 0
+        requete = urllib.request.Request(source, headers={**ENTETES, **({"Range": f"bytes={deja}-"} if deja else {})})
+        try:
+            with urllib.request.urlopen(requete, timeout=30) as r:
+                if deja and r.status != 206:
+                    deja = 0
+                total = deja + int(r.headers.get("Content-Length") or 0)
+                _noter(ident, total=total, fait=deja, message=tr("assistant.telechargement_de", v1=destination.name))
+                with open(partiel, "ab" if deja else "wb") as f:
+                    while True:
+                        bloc = r.read(1 << 20)
+                        if not bloc:
+                            break
+                        f.write(bloc)
+                        deja += len(bloc)
+                        _noter(ident, fait=deja)
+            if total and deja < total:
+                raise ConnectionError(f"{deja}/{total}")
+            break
+        except (OSError, ConnectionError):   # coupure, delai depasse (30 s sans donnees), miroir indisponible
+            if n == len(sources) - 1:
+                raise
     if sha256:
         _noter(ident, message=tr("assistant.verification_de", v1=destination.name))
         h = hashlib.sha256()
@@ -278,6 +289,34 @@ def _telecharger(ident, url, destination, sha256=None):
             raise RuntimeError(tr("assistant.empreinte_differente_de_celle_publiee", v1=destination.name))
     partiel.replace(destination)
     return destination
+
+
+def _miroirs_kiwix(url):
+    """Miroirs officiels d'un fichier Kiwix (liste .meta4 publiee par download.kiwix.org), du plus rapide au plus lent.
+    Kiwix redirige parfois vers un miroir tres lent (0,5 Mo/s mesure, contre 50 a 70 Mo/s pour d'autres) : on mesure
+    chacun quelques secondes. L'adresse officielle reste en dernier recours."""
+    try:
+        xml = urllib.request.urlopen(urllib.request.Request(url + ".meta4", headers=ENTETES), timeout=30
+                                     ).read().decode("utf-8", "replace")
+    except OSError:
+        return [url]
+    nom = url.rsplit("/", 1)[1]
+    candidats = [u for u in dict.fromkeys(re.findall(r"<url[^>]*>(https://[^<]+)</url>", xml)) if u.endswith("/" + nom)]
+    mesures = []
+    for u in candidats[:12]:
+        try:
+            debut, recu = time.monotonic(), 0
+            with urllib.request.urlopen(urllib.request.Request(u, headers={**ENTETES, "Range": "bytes=0-16777215"}),
+                                        timeout=8) as r:
+                while recu < (16 << 20) and time.monotonic() - debut < 4:
+                    bloc = r.read(1 << 18)
+                    if not bloc:
+                        break
+                    recu += len(bloc)
+            mesures.append((recu / max(time.monotonic() - debut, 0.01), u))
+        except OSError:
+            continue
+    return [u for _, u in sorted(mesures, reverse=True)] + [url]
 
 
 def _en_fond(ident, travail):
@@ -404,7 +443,7 @@ def installer_composant(ident, licence_acceptee, options=None):
     def windows_mcp():
         python = _venv(INSTALLATION / "outils" / "windows-mcp")
         _noter(ident, message=tr("assistant.installation_de_windows_mcp_depuis"))
-        _pip(python, "windows-mcp==0.8.5")
+        _pip(python, "-r", str(INSTALLATION / "requirements-windows-mcp.txt"))
         _activer_module("windows")
         return tr("assistant.windows_mcp_installe")
 
@@ -427,7 +466,8 @@ def installer_composant(ident, licence_acceptee, options=None):
         dossier = INSTALLATION / "modules" / "voix-xtts"
         python = _venv(dossier / ".venv")
         _noter(ident, message=tr("assistant.installation_de_pytorch_cuda_depuis"))
-        _pip(python, "torch", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cu126")
+        # versions figees : a partir de torch 2.9, coqui-tts exige torchcodec, donc FFmpeg installe sur Windows
+        _pip(python, "torch==2.8.0", "torchaudio==2.8.0", "--index-url", "https://download.pytorch.org/whl/cu126")
         _noter(ident, message=tr("assistant.installation_de_coqui_tts_depuis"))
         _pip(python, "-r", str(dossier / "requirements.txt"))
         _activer_module("voix", voix={"xtts": {"url": "http://127.0.0.1:8771/", "serveur": str(dossier / "serveur_xtts.py"),
@@ -447,7 +487,8 @@ def installer_composant(ident, licence_acceptee, options=None):
         url = "https://download.kiwix.org/zim/wikipedia/" + noms[-1]
         empreinte = urllib.request.urlopen(urllib.request.Request(url + ".sha256", headers=ENTETES), timeout=30
                                            ).read().decode().split()[0]
-        zim = _telecharger(ident, url, MODELES / "wikipedia" / noms[-1], empreinte)
+        _noter(ident, message=tr("assistant.choix_du_miroir"))
+        zim = _telecharger(ident, _miroirs_kiwix(url), MODELES / "wikipedia" / noms[-1], empreinte)
         _activer_module("wikipedia", wikipedia={"fichier_zim": str(zim)})
         return tr("assistant.wikipedia_hors_ligne_installe", v1=noms[-1])
 

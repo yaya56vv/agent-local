@@ -10,7 +10,8 @@
 #      administrateurs), car un programme lance en administrateur ne doit jamais venir d'un dossier modifiable ;
 #   3. lanceurs avec controle d'integrite : signature Microsoft pour Autoruns, empreintes SHA-256 pour LHM (un fichier de
 #      code change, manquant ou en trop = pas de lancement, note dans C:\ProgramData\AgentLocal\Sante\controle_integrite.log) ;
-#   4. taches planifiees \AgentLocal\Autoruns, \AgentLocal\LibreHardwareMonitor (ouverture de session) et \AgentLocal\Disques, pour ce compte ;
+#   4. taches planifiees \AgentLocal\Autoruns et \AgentLocal\Disques (compte Systeme : elles marchent aussi pour un compte
+#      standard, qui peut seulement les lancer) et \AgentLocal\LibreHardwareMonitor (ouverture de session de ce compte) ;
 #   5. pare-feu : le serveur web de LibreHardwareMonitor (port 8085) n'est joignable que depuis ce PC.
 # Ne supprime rien. N'envoie rien sur Internet en dehors des telechargements winget.
 param([string]$Utilisateur = '', [switch]$LicencesAcceptees, [string]$Langue = '')
@@ -92,8 +93,9 @@ Ok (T 'admin.installer_sante.librehardwaremonitor_copie_empreintes_de_v1' @{ v1 
 
 Etape (T 'admin.installer_sante.4_lanceurs_avec_controle_d')
 Copy-Item (Join-Path (Split-Path $PSScriptRoot) "langues\$LANGUE_CHOISIE.json") (Join-Path $OUTILS 'langue.json') -Force
-Ecrire-Script "$OUTILS\lancer_autoruns.ps1" @'
-# Lance Autoruns (tache \AgentLocal\Autoruns, administrateur) depuis le dossier protege, apres controle de sa signature.
+Ecrire-Script "$OUTILS\lancer_autoruns.ps1" (@'
+# Lance Autoruns (tache \AgentLocal\Autoruns, compte Systeme) depuis le dossier protege, apres controle de sa signature.
+# Le compte Systeme a ses propres demarrages « utilisateur » : on analyse ceux du compte qui utilise Agent Local.
 $exe = Join-Path $env:ProgramFiles 'AgentLocal\Outils\Autoruns\autorunsc64.exe'
 $sortie = Join-Path $env:ProgramData 'AgentLocal\Sante\autoruns.csv'
 $journal = Join-Path $env:ProgramData 'AgentLocal\Sante\controle_integrite.log'
@@ -102,8 +104,9 @@ $sig = Get-AuthenticodeSignature -FilePath $exe
 if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
   Add-Content -Path $journal -Value "$(Get-Date -Format 'dd/MM/yyyy HH:mm:ss') $($L.'admin.integrite.autoruns_refus'.Replace('{v1}', [string]$sig.Status))" -Encoding UTF8
   exit 1 }
-& $exe -accepteula -nobanner -a bdehlmstw -c -s -o $sortie
-'@
+$compte = (New-Object Security.Principal.SecurityIdentifier('__SID__')).Translate([Security.Principal.NTAccount]).Value
+& $exe -accepteula -nobanner -a bdehlmstw -c -s -o $sortie $compte
+'@).Replace('__SID__', $compte.Sid)
 Ecrire-Script "$OUTILS\lancer_lhm.ps1" @'
 # Lance LibreHardwareMonitor (tache du meme nom, administrateur, a l'ouverture de session) depuis le dossier protege,
 # apres comparaison de chaque fichier de code (.exe, .dll, .exe.config) aux empreintes relevees a l'installation.
@@ -124,7 +127,7 @@ foreach ($rel in $attendu.Keys) { if (-not (Test-Path (Join-Path $dossier $rel))
 Start-Process -FilePath (Join-Path $dossier 'LibreHardwareMonitor.exe') -WorkingDirectory $dossier
 '@
 Ecrire-Script "$DISQUES\disques.ps1" @'
-# Etat des disques par CrystalDiskInfo (tache \AgentLocal\Disques, administrateur) : rapport copie dans un dossier protege.
+# Etat des disques par CrystalDiskInfo (tache \AgentLocal\Disques, compte Systeme) : rapport copie dans un dossier protege.
 $exe = Join-Path $env:ProgramFiles 'CrystalDiskInfo\DiskInfo64.exe'
 $src = Join-Path $env:ProgramFiles 'CrystalDiskInfo\DiskInfo.txt'
 $dst = Join-Path $env:ProgramData 'AgentLocal\Disques\DiskInfo.txt'
@@ -137,9 +140,9 @@ Verifier-Protege $OUTILS; Verifier-Protege $DISQUES
 Ok (T 'admin.installer_sante.lanceurs_ecrits')
 
 Etape (T 'admin.installer_sante.5_taches_planifiees_et_pare')
-Enregistrer-Tache 'Autoruns' (Action-PowerShell "$OUTILS\lancer_autoruns.ps1") $compte (New-TimeSpan -Minutes 5)
+Enregistrer-Tache 'Autoruns' (Action-PowerShell "$OUTILS\lancer_autoruns.ps1") $compte (New-TimeSpan -Minutes 5) -Systeme
 Enregistrer-Tache 'LibreHardwareMonitor' (Action-PowerShell "$OUTILS\lancer_lhm.ps1" "$OUTILS\LibreHardwareMonitor") $compte ([TimeSpan]::Zero) -AuDemarrageDeSession
-Enregistrer-Tache 'Disques' (Action-PowerShell "$DISQUES\disques.ps1") $compte (New-TimeSpan -Minutes 5)
+Enregistrer-Tache 'Disques' (Action-PowerShell "$DISQUES\disques.ps1") $compte (New-TimeSpan -Minutes 5) -Systeme
 Get-NetFirewallRule -DisplayName 'Agent Local - LibreHardwareMonitor' -ErrorAction SilentlyContinue | Remove-NetFirewallRule
 New-NetFirewallRule -DisplayName 'Agent Local - LibreHardwareMonitor' -Direction Inbound -Action Block `
     -Program "$OUTILS\LibreHardwareMonitor\LibreHardwareMonitor.exe" -Profile Any | Out-Null

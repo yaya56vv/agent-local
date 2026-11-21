@@ -1,6 +1,6 @@
 # Agent Local - dependances du noyau (noyau\.venv). Versions figees, toutes publiees depuis plus de deux semaines.
 # Les modules facultatifs ont leurs propres fichiers : requirements-wikipedia.txt (GPL-3.0),
-# modules\dictee\requirements.txt, modules\voix-xtts\requirements.txt.
+# requirements-windows-mcp.txt, modules\dictee\requirements.txt, modules\voix-xtts\requirements.txt.
 mcp==1.30.0
 httpx==0.28.1
 edge-tts==7.3.1

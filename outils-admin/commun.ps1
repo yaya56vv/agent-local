@@ -68,6 +68,12 @@ function Verifier-Avant-Ecrasement($dossiers, $taches) {
 
 function Marquer($dossier) { Set-Content -Path (Join-Path $dossier $MARQUE) -Value (Get-Date -Format 'yyyy-MM-dd HH:mm') -Encoding ASCII }
 
+function Est-Admin($compte) {
+    # Le compte est-il membre du groupe Administrateurs (S-1-5-32-544) ? (directement ; un groupe imbrique compte comme non)
+    try { return [bool](Get-LocalGroupMember -SID 'S-1-5-32-544' -ErrorAction Stop | Where-Object { $_.SID.Value -eq $compte.Sid }) }
+    catch { return [bool](net localgroup (Get-LocalGroup -SID 'S-1-5-32-544').Name | Where-Object { $_.Trim() -eq ($compte.Nom -split '\\')[-1] }) }
+}
+
 function Ecrire-Script($chemin, $texte) {
     $e = $null; [System.Management.Automation.Language.Parser]::ParseInput($texte, [ref]$null, [ref]$e) | Out-Null
     if ($e) { Arret (T 'admin.commun.le_script_prepare_pour_v1' @{ v1 = $chemin; v2 = ($e[0].Message) }) }
@@ -109,9 +115,13 @@ function Verifier-Protege($dossier) {
     Ok (T 'admin.commun.v1_ecriture_reservee_aux_administrateurs' @{ v1 = $dossier })
 }
 
-function Enregistrer-Tache($nom, $action, $compte, [TimeSpan]$limite, [switch]$AuDemarrageDeSession) {
+function Enregistrer-Tache($nom, $action, $compte, [TimeSpan]$limite, [switch]$AuDemarrageDeSession, [switch]$Systeme) {
     # $limite est une vraie duree (New-TimeSpan, [TimeSpan]::Zero = sans limite) : jamais un texte comme 'PT5M'.
-    $principal = New-ScheduledTaskPrincipal -UserId $compte.Sid -LogonType Interactive -RunLevel Highest
+    # -Systeme : la tache tourne sous le compte Systeme. Pour un compte STANDARD, « RunLevel Highest » ne donne PAS les
+    # droits administrateur : la tache ne pourrait pas ecrire dans les dossiers proteges (test du 21/11/2026, Autoruns).
+    # Le compte de l'utilisateur recoit seulement le droit de lire et de lancer la tache (pas de la modifier).
+    if ($Systeme) { $principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest }
+    else { $principal = New-ScheduledTaskPrincipal -UserId $compte.Sid -LogonType Interactive -RunLevel Highest }
     $reglages = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew `
         -ExecutionTimeLimit $limite
     $options = @{ Action = $action; Principal = $principal; Settings = $reglages; Description = (T 'admin.commun.description_tache') }
@@ -121,7 +131,14 @@ function Enregistrer-Tache($nom, $action, $compte, [TimeSpan]$limite, [switch]$A
         $options.Trigger = $declencheur
     }
     Register-ScheduledTask -TaskPath $DOSSIER_TACHES -TaskName $nom -InputObject (New-ScheduledTask @options) -Force | Out-Null
-    Ok (T 'admin.commun.tache_planifiee_v1_compte_v2' @{ v1 = "$DOSSIER_TACHES$nom"; v2 = ($compte.Nom) })
+    if ($Systeme) {
+        $service = New-Object -ComObject Schedule.Service; $service.Connect()
+        $tache = $service.GetFolder($DOSSIER_TACHES.TrimEnd([char]92)).GetTask($nom)
+        $sddl = $tache.GetSecurityDescriptor(4)   # 4 = DACL seule
+        if ($sddl -notmatch [regex]::Escape(";;;$($compte.Sid))")) { $tache.SetSecurityDescriptor($sddl + "(A;;GRGX;;;$($compte.Sid))", 0) }
+        Ok (T 'admin.commun.tache_planifiee_systeme' @{ v1 = "$DOSSIER_TACHES$nom"; v2 = ($compte.Nom) })
+    } elseif (Est-Admin $compte) { Ok (T 'admin.commun.tache_planifiee_v1_compte_v2' @{ v1 = "$DOSSIER_TACHES$nom"; v2 = ($compte.Nom) }) }
+    else { Write-Host "  $(T 'admin.commun.a_verifier') $(T 'admin.commun.tache_compte_standard' @{ v1 = "$DOSSIER_TACHES$nom"; v2 = ($compte.Nom) })" -ForegroundColor Yellow }
 }
 
 function Action-PowerShell($script, $dossierTravail) {
