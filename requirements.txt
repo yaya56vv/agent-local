@@ -1,0 +1,13 @@
+# Agent Local - dependances du noyau (noyau\.venv). Versions figees, toutes publiees depuis plus de deux semaines.
+# Les modules facultatifs ont leurs propres fichiers : requirements-wikipedia.txt (GPL-3.0),
+# modules\dictee\requirements.txt, modules\voix-xtts\requirements.txt.
+mcp==1.30.0
+httpx==0.28.1
+edge-tts==7.3.1
+pywebview==6.2.1
+pythonnet==3.2.1
+python-docx==1.2.0
+openpyxl==3.1.5
+pillow==13.0.0
+pypdf==7.0.0
+reportlab==5.1.0

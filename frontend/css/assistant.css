@@ -1,0 +1,98 @@
+/* Assistant de premier lancement et page Reglages : meme univers que dashboard.css (fond spatial, verre, cyan). */
+.as-voile { position: fixed; inset: 0; z-index: 9000; background: rgba(2, 6, 23, .82); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 24px; }
+.as-voile[hidden] { display: none !important; }
+.as-fenetre { width: min(1040px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  background: rgba(15, 23, 42, .92); border: 1px solid rgba(0, 224, 255, .25); border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .6), 0 0 30px rgba(0, 224, 255, .08); color: var(--text-main, #f1f5f9);
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif; font-size: 16px; }
+.as-barre { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px;
+  background: rgba(8, 18, 32, .95); border-bottom: 1px solid rgba(255, 255, 255, .1); flex-wrap: wrap; }
+.as-nom { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: .9rem; color: #9af5ff; }
+.as-etapes { display: flex; flex-wrap: wrap; gap: 4px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: .72rem; }
+.as-etapes span { padding: 3px 8px; border-radius: 3px; color: #94a3b8; }
+.as-etapes span.fait { color: #10b981; }
+.as-etapes span.ici { color: #020617; background: #00e0ff; font-weight: 500; }
+.as-corps { padding: 22px 24px; display: grid; gap: 18px; overflow-y: auto; grid-auto-rows: max-content; align-content: start; }
+.as-corps h2 { margin: 0; font-size: 1.6rem; letter-spacing: .02em; }
+.as-sous { margin: -12px 0 0; color: #94a3b8; }
+.as-pied { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 24px;
+  border-top: 1px solid rgba(255, 255, 255, .1); background: rgba(2, 6, 23, .4); }
+.as-champ { display: grid; gap: 6px; font-weight: 600; }
+.as-champ small { color: #94a3b8; font-weight: 400; }
+.as-saisie { display: flex; gap: 8px; }
+.as-corps input[type=text], .as-corps input[type=password], .as-corps select {
+  flex: 1; min-width: 0; background: rgba(2, 6, 23, .7); color: #f1f5f9; border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 5px; padding: 8px 11px; font: 500 .92rem 'JetBrains Mono', Consolas, monospace; }
+.as-btn { font: 600 .95rem 'Rajdhani', 'Segoe UI', sans-serif; letter-spacing: .04em; border-radius: 5px; padding: 7px 15px;
+  cursor: pointer; border: 1px solid rgba(255, 255, 255, .15); background: rgba(255, 255, 255, .05); color: #f1f5f9; }
+.as-btn:hover { filter: brightness(1.15); }
+.as-btn:disabled { opacity: .45; cursor: not-allowed; }
+.as-btn.principal { background: #00e0ff; color: #020617; border-color: #00e0ff; }
+.as-btn.discret { background: transparent; color: #94a3b8; }
+.as-btn.petit { padding: 4px 10px; font-size: .85rem; }
+.as-btn.bouclier { background: rgba(245, 158, 11, .15); border-color: #f59e0b; color: #fcd34d; }
+.as-btn.danger { background: rgba(239, 68, 68, .15); border-color: #ef4444; color: #fecaca; }
+.as-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.as-carte { border: 1px solid rgba(255, 255, 255, .1); border-radius: 8px; padding: 13px 15px; background: rgba(2, 6, 23, .45);
+  display: grid; gap: 8px; min-width: 0; }
+.as-carte.choisie { border-color: #00e0ff; box-shadow: inset 0 0 0 1px rgba(0, 224, 255, .35); background: rgba(0, 224, 255, .05); }
+.as-carte h3 { margin: 0; font-size: 1.08rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.as-carte p { margin: 0; color: #94a3b8; font-size: .95rem; }
+.as-choix { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.as-choix input { margin-top: 5px; accent-color: #00e0ff; }
+.as-mono { font-family: 'JetBrains Mono', Consolas, monospace; font-size: .84rem; }
+.as-gris { color: #94a3b8; }
+.as-pastille { font: 500 .7rem 'JetBrains Mono', Consolas, monospace; padding: 2px 7px; border-radius: 3px; text-transform: uppercase;
+  letter-spacing: .05em; white-space: nowrap; }
+.p-local { background: rgba(16, 185, 129, .15); color: #6ee7b7; }
+.p-envoi { background: rgba(245, 158, 11, .15); color: #fcd34d; }
+.p-licence { background: rgba(239, 68, 68, .15); color: #fca5a5; }
+.p-reco { background: rgba(0, 224, 255, .15); color: #9af5ff; }
+.as-progression { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.as-progression i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #0ea5e9, #00e0ff); transition: width .4s; }
+.as-alerte { border-left: 3px solid #f59e0b; background: rgba(245, 158, 11, .08); padding: 9px 13px; border-radius: 0 6px 6px 0;
+  color: #fde68a; font-size: .95rem; }
+.as-alerte.info { border-color: #00e0ff; background: rgba(0, 224, 255, .06); color: #9af5ff; }
+.as-alerte.rouge { border-color: #ef4444; background: rgba(239, 68, 68, .08); color: #fecaca; }
+.as-alerte.vert { border-color: #10b981; background: rgba(16, 185, 129, .08); color: #a7f3d0; }
+.as-detection { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 11px 15px;
+  border: 1px solid rgba(16, 185, 129, .4); border-radius: 8px; background: rgba(16, 185, 129, .06); }
+.as-detection .chiffre { font: 600 1.5rem 'JetBrains Mono', Consolas, monospace; color: #6ee7b7; }
+.as-table-zone { overflow-x: auto; }
+table.as-paliers { width: 100%; border-collapse: collapse; font-size: .92rem; }
+table.as-paliers td, table.as-paliers th { text-align: left; padding: 6px 9px; border-bottom: 1px solid rgba(255, 255, 255, .1); }
+table.as-paliers th { color: #94a3b8; font: 500 .74rem 'JetBrains Mono', Consolas, monospace; text-transform: uppercase; letter-spacing: .06em; }
+table.as-paliers tr.ici td { color: #9af5ff; }
+.as-module { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 11px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.as-module:last-child { border-bottom: 0; }
+.as-module h4 { margin: 0; font-size: 1.04rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.as-module p { margin: 2px 0 0; color: #94a3b8; font-size: .92rem; }
+.as-module input[type=checkbox] { margin-top: 5px; accent-color: #00e0ff; width: 17px; height: 17px; }
+.as-module .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.as-module .detail { grid-column: 2 / 4; display: grid; gap: 8px; }
+.as-licence { display: grid; gap: 7px; border: 1px dashed rgba(255, 255, 255, .18); border-radius: 6px; padding: 9px 12px; }
+.as-licence label { display: flex; gap: 8px; align-items: center; font-weight: 600; cursor: pointer; }
+.as-licence a { color: #9af5ff; }
+details.as-avances { border: 1px solid rgba(255, 255, 255, .1); border-radius: 8px; padding: 9px 15px; }
+details.as-avances summary { cursor: pointer; font-weight: 600; color: #9af5ff; }
+.as-reglages { display: grid; grid-template-columns: 210px 1fr; min-height: 0; flex: 1; overflow: hidden; }
+.as-reglages aside { border-right: 1px solid rgba(255, 255, 255, .1); padding: 14px 0; background: rgba(2, 6, 23, .35); overflow-y: auto; }
+.as-reglages aside button { display: block; width: 100%; text-align: left; padding: 8px 20px; color: #94a3b8; background: none;
+  border: 0; border-left: 3px solid transparent; font: 600 .98rem 'Rajdhani', 'Segoe UI', sans-serif; cursor: pointer; }
+.as-reglages aside button.ici { color: #9af5ff; border-left-color: #00e0ff; background: rgba(0, 224, 255, .06); }
+.as-reglages .as-corps { min-width: 0; }
+.as-ligne { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.as-souvenir { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.as-confirmer { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.as-notes { white-space: pre-wrap; max-height: 220px; overflow-y: auto; background: rgba(2, 6, 23, .6); padding: 10px; border-radius: 6px; }
+#bouton-reglages { position: absolute; top: 10px; right: 16px; z-index: 50; }
+@media (max-width: 760px) {
+  .as-reglages { grid-template-columns: 1fr; }
+  .as-reglages aside { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid rgba(255, 255, 255, .1); padding: 0; }
+  .as-reglages aside button { border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .as-module { grid-template-columns: auto 1fr; }
+  .as-module .actions, .as-module .detail { grid-column: 2; justify-content: flex-start; }
+}

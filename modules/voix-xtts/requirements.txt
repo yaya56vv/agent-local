@@ -1,0 +1,4 @@
+# Voix de secours hors ligne (environnement separe : modules\voix-xtts\.venv), installee par l'assistant
+# seulement apres acceptation de la licence CPML du modele XTTS-v2 (usage personnel et non commercial).
+coqui-tts==0.28.0
+soundfile==0.13.1

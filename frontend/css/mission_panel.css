@@ -1,0 +1,846 @@
+/**
+ * PANNEAU DE PILOTAGE DES MISSIONS (Colonne 4)
+ * Cockpit de continuité séquencée
+ */
+
+/* ═══════════════════════════════════════════════════
+   LISERÉ LUMINEUX POUR PANEL 4 - MÊME STYLE QUE LES AUTRES
+   Défini ici car ce fichier est chargé EN DERNIER
+   ═══════════════════════════════════════════════════ */
+
+.dashboard-mission {
+    /* Liseré cyan sur 3 côtés */
+    border: 2px solid rgba(0, 234, 255, 0.5) !important;
+    border-bottom: none !important;
+    border-radius: 20px !important;
+    
+    /* Glow externe */
+    box-shadow:
+        0 0 15px rgba(0, 234, 255, 0.35),
+        0 0 8px rgba(0, 234, 255, 0.25),
+        inset 0 1px 0 rgba(0, 234, 255, 0.1) !important;
+    
+    /* Fond sombre transparent */
+    background: rgba(20, 30, 50, 0.85) !important;
+    backdrop-filter: blur(10px) !important;
+    
+    position: relative;
+    overflow: hidden;
+}
+
+/* Liseré lumineux en bas - dégradé cyan */
+.dashboard-mission::after {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 3px !important;
+    pointer-events: none;
+    z-index: 998;
+    background: linear-gradient(
+        to right,
+        rgba(0, 234, 255, 0.85) 0%,
+        rgba(100, 240, 255, 0.85) 25%,
+        rgba(200, 250, 255, 0.85) 50%,
+        rgba(150, 220, 245, 0.85) 75%,
+        rgba(100, 200, 240, 0.85) 100%
+    ) !important;
+    border-radius: 0 0 18px 18px !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   STYLES INTERNES DU PANEL
+   ═══════════════════════════════════════════════════ */
+
+.dashboard-mission .zone-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 200, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-mission .zone-header h2 {
+    font-size: 1rem;
+    color: var(--neon-cyan);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ═══════════════════════════════════════════════════
+   ZONE A: OBJECTIF ET TIMELINE
+   ═══════════════════════════════════════════════════ */
+
+.mission-objectif-zone {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.mission-objectif-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.mission-objectif-texte {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    line-height: 1.4;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mission-timeline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 16px;
+    padding: 12px 0;
+}
+
+.timeline-etape {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.timeline-etape.fait {
+    background: var(--neon-green);
+    box-shadow: 0 0 8px var(--neon-green);
+}
+
+.timeline-etape.en-cours {
+    background: var(--neon-cyan);
+    box-shadow: 0 0 8px var(--neon-cyan);
+    animation: pulse-etape 1.5s infinite;
+}
+
+.timeline-etape.bloque {
+    background: var(--neon-red);
+    box-shadow: 0 0 8px var(--neon-red);
+}
+
+@keyframes pulse-etape {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.timeline-etape .etape-numero {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.timeline-etape.en-cours .etape-numero {
+    color: var(--neon-cyan);
+    font-weight: bold;
+}
+
+/* ═══════════════════════════════════════════════════
+   ZONE B: LISTE DES TÂCHES
+   ═══════════════════════════════════════════════════ */
+
+.mission-taches-zone {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.mission-taches-titre {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mission-taches-progression {
+    color: var(--neon-cyan);
+    font-weight: bold;
+}
+
+.mission-tache-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.mission-tache-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.mission-tache-item.a-faire {
+    border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+.mission-tache-item.en-cours {
+    border-left-color: var(--neon-cyan);
+    background: rgba(0, 200, 255, 0.05);
+}
+
+.mission-tache-item.fait {
+    border-left-color: var(--neon-green);
+    opacity: 0.7;
+}
+
+.mission-tache-item.bloque {
+    border-left-color: var(--neon-red);
+    background: rgba(255, 50, 50, 0.05);
+}
+
+.tache-indicateur {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.tache-indicateur.a-faire {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+}
+
+.tache-indicateur.en-cours {
+    background: var(--neon-cyan);
+    color: #000;
+    animation: pulse 1.5s infinite;
+}
+
+.tache-indicateur.fait {
+    background: var(--neon-green);
+    color: #000;
+}
+
+.tache-indicateur.bloque {
+    background: var(--neon-red);
+    color: #fff;
+}
+
+.tache-contenu {
+    flex: 1;
+    min-width: 0;
+}
+
+.tache-titre {
+    font-size: 0.9rem;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.tache-description {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+/* ═══════════════════════════════════════════════════
+   ZONE C: INTERACTION
+   ═══════════════════════════════════════════════════ */
+
+.mission-interaction-zone {
+    padding: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.mission-message-attente {
+    padding: 12px;
+    background: rgba(255, 200, 0, 0.1);
+    border: 1px solid rgba(255, 200, 0, 0.3);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+}
+
+.mission-input-groupe {
+    display: flex;
+    gap: 8px;
+}
+
+.mission-input {
+    flex: 1;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-main);
+    font-size: 0.9rem;
+}
+
+.mission-input:focus {
+    outline: none;
+    border-color: var(--neon-cyan);
+}
+
+.mission-btn-envoyer {
+    padding: 10px 16px;
+    background: var(--neon-cyan);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.mission-btn-envoyer:hover {
+    background: var(--neon-green);
+}
+
+/* ═══════════════════════════════════════════════════
+   ZONE D: MÉTRIQUES ET CONTRÔLES
+   ═══════════════════════════════════════════════════ */
+
+.mission-metriques-zone {
+    padding: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.metriques-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.metrique-item {
+    text-align: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+}
+
+.metrique-valeur {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--neon-cyan);
+}
+
+.metrique-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+.mission-controles {
+    display: flex;
+    gap: 10px;
+}
+
+.mission-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.mission-btn-pause {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+    border: 1px solid rgba(255, 200, 0, 0.3);
+}
+
+.mission-btn-pause:hover {
+    background: rgba(255, 200, 0, 0.3);
+}
+
+.mission-btn-reprendre {
+    background: rgba(0, 200, 100, 0.2);
+    color: var(--neon-green);
+    border: 1px solid rgba(0, 200, 100, 0.3);
+}
+
+.mission-btn-reprendre:hover {
+    background: rgba(0, 200, 100, 0.3);
+}
+
+.mission-btn-annuler {
+    background: rgba(255, 50, 50, 0.2);
+    color: var(--neon-red);
+    border: 1px solid rgba(255, 50, 50, 0.3);
+}
+
+.mission-btn-annuler:hover {
+    background: rgba(255, 50, 50, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════
+   ÉTAT VIDE / PAS DE MISSION
+   ═══════════════════════════════════════════════════ */
+
+.mission-vide {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+}
+
+.mission-vide-icone {
+    font-size: 3rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.mission-vide-texte {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════
+   CARTE MISSION COMPACTE (Colonne 3)
+   ═══════════════════════════════════════════════════ */
+
+.carte-mission-compacte {
+    margin: 16px;
+    padding: 16px;
+    background: rgba(0, 200, 255, 0.05);
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    border-radius: 12px;
+}
+
+.carte-mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.carte-mission-titre {
+    font-size: 0.9rem;
+    color: var(--text-main);
+    font-weight: 500;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.carte-mission-etat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.carte-mission-etat.en-cours {
+    background: rgba(0, 200, 255, 0.2);
+    color: var(--neon-cyan);
+}
+
+.carte-mission-etat.en-attente {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+}
+
+.carte-mission-etat.termine {
+    background: rgba(0, 200, 100, 0.2);
+    color: var(--neon-green);
+}
+
+.carte-mission-etat.interrompu {
+    background: rgba(255, 100, 50, 0.2);
+    color: #ff6432;
+}
+
+.carte-mission-etat .etat-point {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.carte-mission-etat.en-cours .etat-point {
+    animation: pulse 1.5s infinite;
+}
+
+.carte-mission-progression {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.carte-mission-barre {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.carte-mission-barre-remplissage {
+    height: 100%;
+    background: var(--neon-cyan);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.carte-mission-pourcentage {
+    font-size: 0.8rem;
+    color: var(--neon-cyan);
+    font-weight: bold;
+    min-width: 40px;
+    text-align: right;
+}
+
+.carte-mission-etape {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.carte-mission-etape strong {
+    color: var(--text-main);
+}
+
+.carte-mission-boutons {
+    display: flex;
+    gap: 8px;
+}
+
+.carte-mission-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.carte-mission-btn-pause {
+    background: rgba(255, 200, 0, 0.15);
+    color: #ffc800;
+}
+
+.carte-mission-btn-pause:hover {
+    background: rgba(255, 200, 0, 0.25);
+}
+
+.carte-mission-btn-annuler {
+    background: rgba(255, 50, 50, 0.15);
+    color: var(--neon-red);
+}
+
+.carte-mission-btn-annuler:hover {
+    background: rgba(255, 50, 50, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════
+   CARTE COMPACTE MISSION (Panel 3 - Mémoire)
+   ═══════════════════════════════════════════════════ */
+
+.mission-card-container {
+    margin-bottom: 12px;
+}
+
+.mission-card-container.hidden {
+    display: none;
+}
+
+.mission-card-compact {
+    padding: 12px;
+    background: rgba(0, 200, 255, 0.05);
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mission-card-compact:hover {
+    background: rgba(0, 200, 255, 0.1);
+    border-color: rgba(0, 200, 255, 0.4);
+}
+
+.mission-card-compact.en-cours {
+    border-left: 3px solid var(--neon-cyan);
+}
+
+.mission-card-compact.attente {
+    border-left: 3px solid #ffc800;
+}
+
+.mission-card-compact.pause {
+    border-left: 3px solid #888;
+}
+
+.mission-card-compact.interrompue {
+    border-left: 3px solid #ff6432;
+}
+
+.mission-card-compact.terminee {
+    border-left: 3px solid var(--neon-green);
+}
+
+.mission-card-compact.erreur {
+    border-left: 3px solid var(--neon-red);
+}
+
+.mission-card-compact .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.mission-card-compact .card-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mission-card-compact .card-badge.en-cours {
+    background: rgba(0, 200, 255, 0.2);
+    color: var(--neon-cyan);
+}
+
+.mission-card-compact .card-badge.attente {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+}
+
+.mission-card-compact .card-badge.terminee {
+    background: rgba(0, 200, 100, 0.2);
+    color: var(--neon-green);
+}
+
+.mission-card-compact .card-progression {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.mission-card-compact .card-titre {
+    font-size: 0.85rem;
+    color: var(--text-main);
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mission-card-compact .card-tache-en-cours {
+    font-size: 0.75rem;
+    color: var(--neon-cyan);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.mission-card-compact .card-tache-en-cours i {
+    font-size: 0.7rem;
+}
+
+.mission-card-compact .card-timeline-mini {
+    display: flex;
+    gap: 3px;
+}
+
+.mission-card-compact .mini-step {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.mission-card-compact .mini-step.fait {
+    background: var(--neon-green);
+}
+
+.mission-card-compact .mini-step.en-cours {
+    background: var(--neon-cyan);
+}
+
+.mission-card-compact .mini-step.bloque {
+    background: var(--neon-red);
+}
+
+/* ═══════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════ */
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════ */
+
+@media (max-width: 1400px) {
+    .dashboard-mission {
+        width: 280px;
+        min-width: 250px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .dashboard-mission {
+        display: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════
+   BOUTON VALIDATION MISSION - PERMANENT
+   Toujours visible, activé uniquement si proposition
+   ═══════════════════════════════════════════════════ */
+
+.mission-validation-zone {
+    padding: 12px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.mission-validate-btn {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid rgba(100, 100, 100, 0.3);
+    border-radius: 12px;
+    background: rgba(50, 50, 50, 0.5);
+    color: rgba(150, 150, 150, 0.6);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: not-allowed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.mission-validate-btn i {
+    font-size: 1.3rem;
+}
+
+.mission-validate-btn .validate-btn-text {
+    font-weight: bold;
+}
+
+.mission-validate-btn .validate-btn-status {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    font-weight: normal;
+}
+
+/* État DÉSACTIVÉ (par défaut) */
+.mission-validate-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* État ACTIF - Proposition en attente */
+.mission-validate-btn:not(:disabled) {
+    background: linear-gradient(135deg, #1a5a1a 0%, #2d8a2d 100%);
+    border-color: #4caf50;
+    color: #fff;
+    cursor: pointer;
+    box-shadow:
+        0 0 20px rgba(76, 175, 80, 0.4),
+        0 0 40px rgba(76, 175, 80, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: validate-btn-pulse 2s infinite;
+}
+
+.mission-validate-btn:not(:disabled):hover {
+    background: linear-gradient(135deg, #2d8a2d 0%, #4caf50 100%);
+    transform: scale(1.02);
+    box-shadow:
+        0 0 30px rgba(76, 175, 80, 0.6),
+        0 0 60px rgba(76, 175, 80, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.mission-validate-btn:not(:disabled):active {
+    transform: scale(0.98);
+}
+
+.mission-validate-btn:not(:disabled) .validate-btn-status {
+    color: #a5d6a7;
+}
+
+/* Animation pulsation pour attirer l'attention */
+@keyframes validate-btn-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 20px rgba(76, 175, 80, 0.4),
+            0 0 40px rgba(76, 175, 80, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 0 30px rgba(76, 175, 80, 0.6),
+            0 0 60px rgba(76, 175, 80, 0.3);
+    }
+}
+
+/* État EN COURS DE VALIDATION */
+.mission-validate-btn.validating {
+    background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%);
+    border-color: #42a5f5;
+    cursor: wait;
+    animation: validate-btn-loading 1s infinite;
+}
+
+@keyframes validate-btn-loading {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* État VALIDÉ (succès temporaire) */
+.mission-validate-btn.validated {
+    background: linear-gradient(135deg, #2e7d32 0%, #66bb6a 100%);
+    border-color: #66bb6a;
+    animation: none;
+}

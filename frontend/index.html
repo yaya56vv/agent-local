@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="ui.page.agent_local_cockpit">🤖 Agent Local - Cockpit</title>
+    <!-- Google Fonts - Cyberpunk Theme -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css?v=26">
+    <link rel="stylesheet" href="css/mission_panel.css?v=9">
+    <link rel="stylesheet" href="css/assistant.css?v=1">
+    <!-- Font Awesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div class="dashboard-container">
+    
+    <!-- 1. HEADER (sert de fond pour l'effet visuel) -->
+    <header class="cyber-header-module">
+        <!-- LED Audio système -->
+        <div id="audio-led" class="audio-led-off" title="État audio système" data-i18n-title="ui.page.etat_audio_systeme"></div>
+    </header>
+
+    <!-- ==================================================
+         DASHBOARD 3 ZONES - PHASE 5
+         ================================================== -->
+
+    <div class="dashboard-layout" style="display: grid !important; grid-template-columns: 260px 1fr 300px 300px !important; grid-template-rows: 1fr !important;">
+
+        <!-- ==========================================
+             ZONE GAUCHE : AGENTS & NAVIGATION
+             ========================================== -->
+        <aside class="dashboard-left" style="grid-column: 1 !important; grid-row: 1 !important;">
+            <div class="zone-header">
+                <h2><i class="fas fa-robot"></i> <span data-i18n="ui.page.agents">Agents</span></h2>
+            </div>
+
+            <!-- === VOLETS DÉPLIANTS (ACCORDÉONS) === -->
+            <div id="left-panel">
+
+                <!-- 1) VOLET AGENTS -->
+                <div class="left-accordion">
+                    <div class="accordion-header open" data-target="agents-list">
+                        <span><span data-i18n="ui.page.agents">Agents</span></span>
+                        <span class="triangle">▶</span>
+                    </div>
+
+                    <div id="agents-list" class="accordion-content open">
+                        <!-- Rempli par agent_v2.js au demarrage (les anciens agents ecrits en dur s'affichaient
+                             quelques secondes : retires le 11/11/2026) -->
+                        <div class="agent-item" data-agent="chef">
+                            <span class="agent-name"><span data-i18n="ui.page.agent_local">Agent Local</span></span>
+                            <span class="agent-status status-idle"><span data-i18n="ui.page.demarrage">Démarrage…</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2) VOLET MCP -->
+                <div class="left-accordion">
+                    <div class="accordion-header" data-target="mcp-status-list">
+                        <span><span data-i18n="ui.page.services_mcp">Services MCP</span></span>
+                        <span class="triangle">▶</span>
+                    </div>
+
+                    <div id="mcp-status-list" class="accordion-content">
+                        <div class="mcp-item status-stopped">
+                            <span class="mcp-indicator"></span>
+                            <span class="mcp-name"><span data-i18n="ui.page.branchement_des_outils">Branchement des outils…</span></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- ==========================================
+             ZONE CENTRALE : FLUX / TIMELINE
+             ========================================== -->
+        <main class="dashboard-center" style="grid-column: 2 !important; grid-row: 1 !important;">
+            <div class="zone-header">
+                <h2><i class="fas fa-stream"></i> <span data-i18n="ui.page.flux_reel">Flux réel</span></h2>
+
+                <div class="audio-controls">
+                    <div class="service-status-pill" id="global-audio-led" title="Etat audio" data-i18n-title="ui.page.etat_audio">
+                        <span class="pill-dot"></span>
+                        <i class="fas fa-headphones"></i>
+                        <span class="pill-label"><span data-i18n="ui.page.audio">Audio</span></span>
+                    </div>
+                    <div class="audio-output-selector" title="Sélecteur de moteur vocal" data-i18n-title="ui.page.selecteur_de_moteur_vocal">
+                        <label for="audio-output-mode"><span data-i18n="ui.page.voix">Voix</span></label>
+                        <select id="audio-output-mode">
+                            <option value=""><span data-i18n="ui.page.henri">Henri</span></option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filtres -->
+                <div class="timeline-filters">
+                    <button class="filter-btn active" data-filter="all"><span data-i18n="ui.page.tout">Tout</span></button>
+                    <button class="filter-btn" data-filter="thought"><span data-i18n="ui.page.pensees">Pensées</span></button>
+                    <button class="filter-btn" data-filter="action"><span data-i18n="ui.page.actions">Actions</span></button>
+                    <button class="filter-btn" data-filter="response"><span data-i18n="ui.page.reponses">Réponses</span></button>
+                    <button id="emergency-stop-btn" class="emergency-stop-btn" title="Arrêt d'urgence" data-i18n-title="ui.page.arret_d_urgence">
+                        <i class="fas fa-hand-paper"></i>
+                        <span><span data-i18n="ui.page.stop">Stop</span></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Timeline des événements -->
+            <div id="live-stream-container" class="live-stream"></div>
+            <div class="timeline-container" id="timeline-container" style="display:none;">
+                <div class="timeline-event event-system">
+                    <div class="event-badge badge-system"><span data-i18n="ui.page.systeme">Système</span></div>
+                    <div class="event-time">--:--:--</div>
+                    <div class="event-content"><span data-i18n="ui.page.en_attente_de_connexion">En attente de connexion...</span></div>
+                </div>
+            </div>
+
+            <!-- Zone prévisualisation fichier attaché -->
+            <div id="file-preview-container" class="file-preview-container hidden">
+                <div class="file-preview-content">
+                    <img id="file-preview-image" class="file-preview-image hidden" alt="Prévisualisation">
+                    <div id="file-preview-info" class="file-preview-info">
+                        <span id="file-preview-icon" class="file-preview-icon">📎</span>
+                        <span id="file-preview-name" class="file-preview-name"></span>
+                        <span id="file-preview-size" class="file-preview-size"></span>
+                    </div>
+                </div>
+                <button id="file-preview-remove" class="file-preview-remove" title="Retirer le fichier" data-i18n-title="ui.page.retirer_le_fichier">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Zone input (en bas) -->
+            <div id="chat-input-bar" class="chat-input-bar">
+                <textarea
+                    id="chat-input"
+                    class="chat-textarea"
+                    placeholder="Écrire un message à l'agent sélectionné…" data-i18n-placeholder="ui.page.ecrire_un_message_a_l"
+                    rows="2"
+                ></textarea>
+                <div id="chat-buttons" class="chat-buttons">
+                    <div class="chat-buttons-row">
+                        <label for="file-input" class="file-button" title="Joindre un fichier" data-i18n-title="ui.page.joindre_un_fichier">
+                            <i class="fas fa-paperclip"></i>
+                        </label>
+                        <input
+                            type="file"
+                            id="file-input"
+                            accept="image/*,.txt,.md,.pdf,.json"
+                            hidden
+                        />
+                        <button id="chat-send" class="chat-send-btn" title="Envoyer" data-i18n-title="ui.page.envoyer">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ==========================================
+             ZONE DROITE : DÉTAILS AGENT SÉLECTIONNÉ
+             ========================================== -->
+        <aside class="dashboard-right" style="grid-column: 3 !important; grid-row: 1 !important;">
+            <div class="zone-header">
+                <h2><i class="fas fa-brain"></i> <span data-i18n="ui.page.memoire">Mémoire</span></h2>
+            </div>
+
+            <!-- === VOLETS DÉPLIANTS (ACCORDÉONS) === -->
+            <div id="right-panel">
+
+                <!-- VOLET MÉMOIRE : le carnet d'Agent Local -->
+                <div class="right-accordion memory-explorer-accordion">
+                    <div class="accordion-header memory-header open" data-target="memory-list">
+                        <span class="memory-label"><i class="fas fa-brain"></i> <span data-i18n="ui.page.memoire">Mémoire</span></span>
+                        <span class="triangle">▶</span>
+                    </div>
+
+                    <div id="memory-list" class="accordion-content open">
+                        <!-- Carte compacte mission (affichée si mission active) -->
+                        <div id="mission-card-compact" class="mission-card-container hidden"></div>
+                        
+                        <!-- Barre de recherche -->
+                        <div class="memory-search-bar">
+                            <input type="text" id="memory-search-input" placeholder="Rechercher dans la mémoire..." data-i18n-placeholder="ui.page.rechercher_dans_la_memoire" />
+                            <button id="memory-search-btn" title="Rechercher" data-i18n-title="ui.page.rechercher">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Stats globales -->
+                        <div id="memory-stats-bar" class="memory-stats-bar"></div>
+                        
+                        <!-- Arborescence -->
+                        <div id="memory-tree" class="memory-tree"></div>
+                        
+                        <!-- Résultats de recherche -->
+                        <div id="memory-search-results" class="memory-search-results hidden"></div>
+                        
+                        <!-- Prévisualisation document -->
+                        <div id="memory-preview" class="memory-preview hidden"></div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- ==========================================
+             ZONE MISSION : PILOTAGE SÉQUENCÉ (Panel 4)
+             ========================================== -->
+        <aside class="dashboard-mission">
+            <div class="zone-header">
+                <h2><i class="fas fa-rocket"></i> <span data-i18n="ui.page.mission">Mission</span></h2>
+                <span class="mission-etat-badge inactive" id="mission-etat-badge"><span data-i18n="ui.page.inactif">Inactif</span></span>
+            </div>
+
+            <!-- Zone A: Objectif et Timeline -->
+            <div class="mission-objectif-zone">
+                <div class="mission-objectif-label"><span data-i18n="ui.page.objectif">Objectif</span></div>
+                <div class="mission-objectif-texte" id="mission-objectif-texte"></div>
+                <div class="mission-timeline"></div>
+            </div>
+
+            <!-- Zone B: Liste des tâches -->
+            <div class="mission-taches-zone">
+                <div class="mission-taches-titre">
+                    <span><span data-i18n="ui.page.liste_des_taches">Liste des tâches</span></span>
+                    <span class="mission-taches-progression"></span>
+                </div>
+                <div class="mission-taches-liste" id="mission-taches-liste">
+                    <div class="mission-vide">
+                        <i class="fas fa-rocket"></i>
+                        <h4><span data-i18n="ui.page.aucune_mission_active">Aucune mission active</span></h4>
+                        <p><span data-i18n="ui.page.les_missions_apparaitront_ici_lors">Les missions apparaîtront ici lors de l'exécution de tâches séquencées</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone C: Interaction -->
+            <div class="mission-interaction-zone">
+
+                <!-- Boutons de contrôle -->
+                <div class="mission-controles">
+                    <button id="btn-mission-annuler" class="mission-btn danger-outline" title="Annuler mission" data-i18n-title="ui.page.annuler_mission">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Zone D: Métriques -->
+            <div class="mission-metriques-zone">
+                <div class="metrique-item">
+                    <span class="metrique-label"><span data-i18n="ui.page.progression">Progression</span></span>
+                    <span class="metrique-valeur" id="mission-progression">0%</span>
+                </div>
+                <div class="metrique-item">
+                    <span class="metrique-label"><span data-i18n="ui.page.duree">Durée</span></span>
+                    <span class="metrique-valeur" id="mission-duree">--</span>
+                </div>
+                <div class="metrique-item">
+                    <span class="metrique-label"><span data-i18n="ui.page.etapes">Étapes</span></span>
+                    <span class="metrique-valeur" id="mission-etapes">0</span>
+                </div>
+            </div>
+        </aside>
+    </div> <!-- /.dashboard-layout -->
+
+</div> <!-- /.dashboard-container -->
+<!-- ==========================================
+     PHASE 5 - CONTRÔLE D'URGENCE
+     ========================================== -->
+
+<!-- Badge tâches en cours -->
+<div id="active-tasks-badge" class="active-tasks-badge hidden">
+    <i class="fas fa-tasks"></i>
+    <span id="active-tasks-count">0</span> <span data-i18n="ui.page.tache_s">tâche(s)</span>
+</div>
+
+<!-- Modale confirmation action dangereuse -->
+<div id="confirmation-modal" class="modal-overlay hidden">
+    <div class="modal-content modal-danger">
+        <div class="modal-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> <span data-i18n="ui.page.confirmation_requise">Confirmation requise</span></h3>
+            <button class="modal-close" onclick="closeConfirmationModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-warning-text">
+                <span data-i18n="ui.page.l_agent">L'agent</span> <strong id="confirm-agent-name">...</strong> <span data-i18n="ui.page.veut_executer_une">veut exécuter une</span> <strong><span data-i18n="ui.page.action_dangereuse">action dangereuse</span></strong> :
+            </p>
+            <div class="action-details-box">
+                <div class="action-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="action-info">
+                    <div class="action-type" id="confirm-action-type">...</div>
+                    <div class="action-params" id="confirm-action-params">...</div>
+                </div>
+            </div>
+            <p class="modal-warning-footer">
+                <strong><span data-i18n="ui.page.cette_action_est_irreversible">⚠️ Cette action est irréversible.</span></strong> <span data-i18n="ui.page.voulez_vous_vraiment_continuer">Voulez-vous vraiment continuer ?</span>
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-danger" id="confirm-deny-btn">
+                <i class="fas fa-times"></i> <span data-i18n="ui.page.refuser">Refuser</span>
+            </button>
+            <button class="btn-modal btn-success" id="confirm-approve-btn">
+                <i class="fas fa-check"></i> <span data-i18n="ui.page.autoriser">Autoriser</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modale arrêt en cours -->
+<div id="stopping-modal" class="modal-overlay hidden">
+    <div class="modal-content modal-info">
+        <div class="modal-body text-center">
+            <i class="fas fa-spinner fa-spin fa-3x"></i>
+            <h3><span data-i18n="ui.page.arret_des_taches_en_cours">Arrêt des tâches en cours...</span></h3>
+            <p id="stopping-status"><span data-i18n="ui.page.envoi_des_signaux_d_arret">Envoi des signaux d'arrêt...</span></p>
+        </div>
+    </div>
+</div>
+
+<script src="./js/textes.js"></script>
+<script src="./js/langue_ui.js?v=1"></script>
+<script src="./js/artefacts.js?v=1"></script>
+<script src="./js/agent_v2.js?v=21"></script>
+<script src="./js/assistant.js?v=1"></script>
+</body>
+</html>

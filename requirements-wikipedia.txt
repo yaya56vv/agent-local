@@ -1,0 +1,3 @@
+# Module facultatif Wikipedia hors ligne : libzim est sous licence GPL-3.0 (installe par l'assistant seulement si
+# l'utilisateur active ce module ; jamais dans requirements.txt).
+libzim==4.1.0

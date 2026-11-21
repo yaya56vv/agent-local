@@ -1,0 +1,11 @@
+# Reglages de SearXNG pour Agent Local (copies dans noyau\donnees\searxng a l'installation, cle secrete tiree au hasard).
+# Le format JSON est necessaire a l'outil recherche d'Agent Local. Le conteneur n'ecoute que sur 127.0.0.1.
+use_default_settings: true
+server:
+  secret_key: "__CLE_SECRETE__"
+  limiter: false
+  image_proxy: false
+search:
+  formats:
+    - html
+    - json

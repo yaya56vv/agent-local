@@ -1,0 +1,10 @@
+# Dictee d'Agent Local (environnement separe : modules\dictee\.venv), installe par l'assistant.
+# Versions identiques a celles qui tournent sur le PC de developpement (faster-whisper 1.2.1 + large-v3).
+faster-whisper==1.2.1
+sounddevice==0.5.5
+numpy==2.4.2
+pynput==1.8.1
+pyperclip==1.11.0
+# Bibliotheques NVIDIA pour CUDA 12 (licence NVIDIA, telechargees depuis PyPI a l'installation, jamais dans le depot)
+nvidia-cublas-cu12==12.9.3.13
+nvidia-cudnn-cu12==9.28.1.4

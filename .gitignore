@@ -1,0 +1,41 @@
+# Agent Local : ce qui ne va jamais dans git
+
+# Environnements et caches Python (se recreent a l'installation)
+.venv/
+__pycache__/
+*.pyc
+
+# Configuration de l'utilisateur (ecrite par l'assistant ; le modele est noyau/config.example.json)
+noyau/config.json
+noyau/config.json.tmp
+
+# Donnees personnelles de l'agent (carnet, conversations, taches, artefacts, journal, profil du navigateur, SearXNG)
+noyau/donnees/
+# Competences de l'utilisateur (copiees depuis noyau/competences-exemples au premier lancement, puis elles evoluent)
+noyau/competences/
+# Journaux
+*.log
+
+# Telechargements faits par l'assistant : modeles, moteur llama.cpp, modules installes
+modeles/
+moteur/
+outils/windows-mcp/
+modules/dictee/.venv/
+modules/voix-xtts/.venv/
+
+# Fichier genere au demarrage (textes de la langue choisie)
+frontend/js/textes.js
+
+# Secrets, au cas ou un fichier de cles apparaitrait ici (ils vont dans %APPDATA%\AgentLocal\secrets)
+.env
+*.env
+!.env.example
+
+# Sauvegardes et fichiers propres a un poste
+*.sauvegarde-*
+.claude/
+noyau/NVIDIA Corporation/
+_atelier/
+maquettes/
+_essai/
+_sortie_essai/
