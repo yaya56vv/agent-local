@@ -608,7 +608,11 @@ window.addEventListener('pywebviewready', async () => {
   bouton.className = 'as-btn petit';
   bouton.textContent = '⚙ ' + T('as.reglages');
   bouton.onclick = () => ouvrirReglages();
-  (document.querySelector('.cyber-header-module') || document.body).appendChild(bouton);
+  // En-tete du volet Agents (a gauche). Pas dans .cyber-header-module : c'est un fond place DERRIERE le tableau de
+  // bord, insensible aux clics (z-index 0, pointer-events: none) ; le bouton y etait invisible (test du 21/11/2026).
+  const place = document.querySelector('.dashboard-left .zone-header');
+  if (place) bouton.classList.add('dans-en-tete');
+  (place || document.body).appendChild(bouton);
   const r = await A('reglages_lire');
   if (r.reprise) {   // redemarrage demande par l'installation de Docker : on reprend a la meme etape
     await A('effacer_reprise');
