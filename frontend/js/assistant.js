@@ -602,20 +602,30 @@ function lierCles(racine) {
 }
 
 // ---------- entree : bouton Reglages, et assistant au premier lancement ----------
-window.addEventListener('pywebviewready', async () => {
+// Le bouton est pose tout de suite (il n'a pas besoin de Python) : il ne depend plus de l'evenement pywebviewready,
+// qui peut avoir eu lieu avant le chargement de ce fichier. En-tete du volet Agents (a gauche) ; jamais dans
+// .cyber-header-module, fond place DERRIERE le tableau de bord et insensible aux clics (test du 21/11/2026).
+(function poserBoutonReglages() {
+  if (document.getElementById('bouton-reglages')) return;
   const bouton = document.createElement('button');
   bouton.id = 'bouton-reglages';
   bouton.className = 'as-btn petit';
   bouton.textContent = '⚙ ' + T('as.reglages');
-  bouton.onclick = () => ouvrirReglages();
-  // En-tete du volet Agents (a gauche). Pas dans .cyber-header-module : c'est un fond place DERRIERE le tableau de
-  // bord, insensible aux clics (z-index 0, pointer-events: none) ; le bouton y etait invisible (test du 21/11/2026).
+  bouton.onclick = () => { if (window.pywebview?.api) ouvrirReglages(); };
   const place = document.querySelector('.dashboard-left .zone-header');
   if (place) bouton.classList.add('dans-en-tete');
   (place || document.body).appendChild(bouton);
+})();
+
+let assistantDemarre = false;
+async function demarrerAssistant() {
+  if (assistantDemarre || !window.pywebview?.api) return;
+  assistantDemarre = true;
   const r = await A('reglages_lire');
   if (r.reprise) {   // redemarrage demande par l'installation de Docker : on reprend a la meme etape
     await A('effacer_reprise');
     if (r.reprise.mode === 'reglages') ouvrirReglages(r.reprise.etape); else ouvrirAssistant(r.reprise.etape);
   } else if (!r.config.premier_lancement_fait) ouvrirAssistant();
-});
+}
+window.addEventListener('pywebviewready', demarrerAssistant);
+demarrerAssistant();   // si pywebview etait deja pret avant le chargement de ce fichier
