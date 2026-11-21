@@ -126,11 +126,13 @@ def _developper(valeur, marques):
     return valeur
 
 
-_PROGRAMDATA = Path(os.environ.get("ProgramData", r"C:\ProgramData"))
-_PROGRAMFILES = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
-OUTILS_ADMIN = {   # module -> fichier ecrit par son script d'installation (dossiers proteges, lisibles par tous)
-    "sante": _PROGRAMFILES / "AgentLocal" / "Outils" / "lancer_autoruns.ps1",
-    "reparation": _PROGRAMDATA / "AgentLocal" / "Reparation" / "scripts" / "repartiteur.ps1",
+# module -> fichier ecrit par son script d'installation, dans un dossier protege (lisible par tous). Chemins ecrits en
+# dur, comme dans mcp_sante.py et mcp_reparation.py : jamais deduits de variables d'environnement. Ce temoin ne fait
+# que DEMARRER le MCP ; chaque geste reste soumis a votre accord, aux droits administrateur et a la fenetre de
+# confirmation du repartiteur. Pour retirer ces modules : Reglages > Outils admin > Desinstaller.
+OUTILS_ADMIN = {
+    "sante": Path(r"C:\Program Files\AgentLocal\Outils\lancer_autoruns.ps1"),
+    "reparation": Path(r"C:\ProgramData\AgentLocal\Reparation\scripts\repartiteur.ps1"),
 }
 
 
