@@ -5,6 +5,7 @@ L'agent ne fait que CHOISIR un geste ; il ne peut pas faire executer une command
 Un point de restauration est cree automatiquement avant les gestes risques.
 Outils : gestes_disponibles, points_de_restauration, resultat_reparation (libres) ; lancer_reparation (sur accord).
 """
+import ctypes
 import json
 import os
 import random
@@ -65,12 +66,21 @@ def _demander(geste, cible, attente):
     if _mode() == "uac":
         # Compte standard : pas de tache planifiee. Windows demande le mot de passe d'un administrateur (UAC), puis la
         # fenetre de confirmation du repartiteur s'affiche comme d'habitude.
+        # Chemins absolus : un powershell.exe depose dans le PATH de l'utilisateur ne doit jamais etre celui qui demande
+        # le mot de passe administrateur.
         repartiteur = os.path.join(BASE, "scripts", "repartiteur.ps1")
-        r = subprocess.run(["powershell", "-NoProfile", "-Command",
-                            "Start-Process powershell -Verb RunAs -WindowStyle Hidden -ArgumentList "
-                            f"'-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{repartiteur}\"'"],
-                           capture_output=True, timeout=600, creationflags=subprocess.CREATE_NO_WINDOW)
-        if r.returncode:   # confirmation Windows refusee ou fermee : la demande est retiree, rien n'a ete fait
+        powershell = os.path.join(_dossier_windows(), "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+        # Start-Process (sans -Wait) rend la main des que le repartiteur est lance ; un code d'erreur signifie qu'il n'a
+        # PAS ete lance (confirmation refusee ou fermee). Sans reponse en 10 minutes, la demande est retiree aussi : si
+        # la confirmation etait acceptee plus tard, le repartiteur ne trouverait aucune demande et ne ferait rien.
+        try:
+            code = subprocess.run([powershell, "-NoProfile", "-Command",
+                                   f"Start-Process '{powershell}' -Verb RunAs -WindowStyle Hidden -ArgumentList "
+                                   f"'-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{repartiteur}\"'"],
+                                  capture_output=True, timeout=600, creationflags=subprocess.CREATE_NO_WINDOW).returncode
+        except subprocess.TimeoutExpired:
+            code = 1
+        if code:   # confirmation Windows refusee, fermee ou restee sans reponse : la demande est retiree, rien n'a ete fait
             try:
                 os.remove(demande)
             except OSError:
@@ -79,6 +89,13 @@ def _demander(geste, cible, attente):
     else:
         subprocess.run(["schtasks", "/run", "/tn", TACHE], capture_output=True, timeout=20)
     return id_, _attendre(id_, attente)
+
+
+def _dossier_windows():
+    """Dossier Windows donne par le systeme (pas par la variable SystemRoot, que le processus peut avoir modifiee)."""
+    tampon = ctypes.create_unicode_buffer(260)
+    ctypes.windll.kernel32.GetSystemWindowsDirectoryW(tampon, 260)
+    return tampon.value or r"C:\Windows"
 
 
 def _mode():
