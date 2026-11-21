@@ -126,6 +126,14 @@ def _developper(valeur, marques):
     return valeur
 
 
+_PROGRAMDATA = Path(os.environ.get("ProgramData", r"C:\ProgramData"))
+_PROGRAMFILES = Path(os.environ.get("ProgramFiles", r"C:\Program Files"))
+OUTILS_ADMIN = {   # module -> fichier ecrit par son script d'installation (dossiers proteges, lisibles par tous)
+    "sante": _PROGRAMFILES / "AgentLocal" / "Outils" / "lancer_autoruns.ps1",
+    "reparation": _PROGRAMDATA / "AgentLocal" / "Reparation" / "scripts" / "repartiteur.ps1",
+}
+
+
 def charger() -> dict:
     """Configuration prete a l'emploi : chemins developpes, modules filtres, niveau d'autonomie applique."""
     conf = brut()
@@ -135,7 +143,12 @@ def charger() -> dict:
     marques = {"{INSTALLATION}": str(INSTALLATION), "{NOYAU}": str(NOYAU), "{DONNEES}": str(DONNEES),
                "{SECRETS}": str(SECRETS), "{SORTIE}": sortie,
                "{PYTHON}": str(PYTHON_VENV if PYTHON_VENV.exists() else Path(sys.executable))}
-    modules = conf.get("modules", {})
+    modules = dict(conf.get("modules", {}))
+    # Outils administrateur : installes = actifs. Leur installation passe par un script administrateur qui ne peut pas
+    # ecrire dans votre config.json, et la page Modules n'a pas de case pour eux (test du 21/11/2026 : MCP absents).
+    for module, temoin in OUTILS_ADMIN.items():
+        if temoin.exists():
+            modules[module] = True
     conf["mcp_servers"] = {nom: serveur for nom, serveur in conf.get("mcp_servers", {}).items()
                            if "module" not in serveur or modules.get(serveur["module"]) is True}
     auth = conf.setdefault("autorisations", {})
