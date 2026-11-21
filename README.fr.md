@@ -52,8 +52,8 @@ Pourquoi au moins 65 536 jetons de mémoire ? À chaque étape, l'agent relit la
 
 ## Installation
 
-1. Téléchargez ce dépôt (bouton **Code → Download ZIP**) et décompressez-le, par exemple dans `C:\AgentLocal`.
-2. Clic droit sur **`installer.ps1`** → **Exécuter avec PowerShell**.
+1. Téléchargez ce dépôt (bouton **Code → Download ZIP**) et décompressez-le (clic droit → **Extraire tout**), par exemple dans `C:\AgentLocal`. Ne lancez rien depuis l'intérieur du zip.
+2. Dans le dossier décompressé, **double-cliquez sur `Installer Agent Local`**.
    Il installe le strict minimum : Python 3.13 et Node.js (s'ils manquent, avec winget), puis les dépendances d'Agent Local. Il crée un raccourci sur le Bureau et ouvre Agent Local.
 3. **L'assistant de premier lancement** vous guide en 5 écrans :
    1. **langue**, prénom et dossier où ranger ce que l'agent crée ;

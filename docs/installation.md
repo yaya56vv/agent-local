@@ -11,7 +11,7 @@
 ## 2. Install
 
 1. Download the repository (**Code → Download ZIP**) and extract it into a simple folder, for example `C:\AgentLocal`. Avoid synced folders (OneDrive): models weigh several gigabytes.
-2. Right-click on **`installer.ps1`** → **Run with PowerShell**.
+2. In the unzipped folder, **double-click `Installer Agent Local`** (it runs `installer.ps1`).
    - If Windows blocks the script: open PowerShell in the folder and type `powershell -NoProfile -ExecutionPolicy Bypass -File installer.ps1`.
 3. The installer:
    - installs **Python 3.13** and **Node.js LTS** with winget if missing (official sources);

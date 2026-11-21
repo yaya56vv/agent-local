@@ -11,7 +11,7 @@
 ## 2. Installer
 
 1. Téléchargez le dépôt (**Code → Download ZIP**) et décompressez-le dans un dossier simple, par exemple `C:\AgentLocal`. Évitez les dossiers synchronisés (OneDrive) : les modèles pèsent plusieurs gigaoctets.
-2. Clic droit sur **`installer.ps1`** → **Exécuter avec PowerShell**.
+2. Dans le dossier décompressé, **double-cliquez sur `Installer Agent Local`** (il lance `installer.ps1`).
    - Si Windows bloque le script : ouvrez PowerShell dans le dossier et tapez `powershell -NoProfile -ExecutionPolicy Bypass -File installer.ps1`.
 3. L'installateur :
    - installe **Python 3.13** et **Node.js LTS** avec winget s'ils manquent (sources officielles) ;

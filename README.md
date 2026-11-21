@@ -52,8 +52,8 @@ Why at least 65,536 tokens? At every step, the agent re-reads the description of
 
 ## Installation
 
-1. Download this repository (**Code → Download ZIP**) and unzip it, for example to `C:\AgentLocal`.
-2. Right-click **`installer.ps1`** → **Run with PowerShell**.
+1. Download this repository (**Code → Download ZIP**) and unzip it (right-click → **Extract All**), for example to `C:\AgentLocal`. Do not run anything from inside the zip.
+2. In the unzipped folder, **double-click `Installer Agent Local`**.
    It installs only the bare minimum: Python 3.13 and Node.js (with winget, if they are missing), then Agent Local's dependencies. It creates a desktop shortcut and opens Agent Local.
 3. The **setup wizard** guides you through 5 screens:
    1. **language**, first name and the folder where the agent saves what it creates;
