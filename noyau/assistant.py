@@ -125,6 +125,16 @@ def cartes():
     return liste
 
 
+def _fichier_local(chemin):
+    """Vrai si le chemin designe un fichier present sur un disque local. Chemin reseau (UNC) ou relatif : ignore, sans
+    toucher au reseau ; chemin mal forme : faux, sans jamais faire echouer la detection."""
+    try:
+        p = Path(str(chemin or ""))
+        return bool(chemin) and p.is_absolute() and not str(p).startswith("\\\\") and p.is_file()
+    except (OSError, TypeError, ValueError):
+        return False
+
+
 def palier_pour(memoire_go):
     return next((p for p in PALIERS if memoire_go >= p["memoire_min"]), None)
 
@@ -145,8 +155,8 @@ def detecter():
             "disque_libre_go": round(shutil.disk_usage(INSTALLATION).free / 2**30), "palier": palier,
             "paliers": PALIERS, "contextes": CONTEXTES, "refus": refus,
             # deja installe (assistant interrompu puis repris) : ne jamais faire retelecharger 17 Go pour rien
-            "modele_present": bool(lanceur.get("modele")) and Path(lanceur["modele"]).is_file(),
-            "moteur_present": bool(lanceur.get("llama_server")) and Path(lanceur["llama_server"]).is_file()}
+            "modele_present": _fichier_local(lanceur.get("modele")),
+            "moteur_present": _fichier_local(lanceur.get("llama_server"))}
 
 
 def choisir_dictee(carte_modele, palier, toutes):
