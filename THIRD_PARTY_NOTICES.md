@@ -37,4 +37,4 @@ télécharge depuis leur source officielle après acceptation de leur licence pa
 | Fonts Rajdhani, JetBrains Mono | interface | SIL Open Font License 1.1 | Google Fonts | loaded online |
 | Font Awesome Free 6.4.0 | interface icons | CC BY 4.0 / OFL 1.1 / MIT | cdnjs | loaded online |
 
-The icon (`noyau/icone.ico`) and background (`frontend/images/fond.jpg`) were drawn by a script for this project and are MIT-licensed.
+The icon (`noyau/icone.ico`) was generated with an AI image tool by the project author, and the background (`frontend/images/fond.jpg`) was drawn by a script for this project. Both are MIT-licensed.
