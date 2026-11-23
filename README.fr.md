@@ -6,6 +6,57 @@ Un agent d'intelligence artificielle **qui tourne entièrement sur votre PC Wind
 
 Il **demande votre accord** avant toute action qui modifie quelque chose ou envoie des données, selon le niveau d'autonomie que vous choisissez. L'interface, l'agent, la voix et la dictée fonctionnent **en français et en anglais**.
 
+![Agent Local au travail : un bilan de santé rapide du PC, de la demande à la réponse (en accéléré)](docs/images/demo.gif)
+
+*Une vraie mission, en accéléré : « fais un rapide bilan de santé de mon PC : températures des cartes graphiques et espace disque libre, puis résume-le en trois lignes ». Terminée en 53 secondes sur une RTX 3090. Le volet Mémoire est flouté pour préserver la vie privée.*
+
+| Écran d'accueil | Mission en cours | Résultat |
+|---|---|---|
+| ![Écran d'accueil](docs/images/cockpit-accueil.png) | ![Mission en cours : le plan et les actions à droite](docs/images/cockpit-en-action.png) | ![Résultat de la mission](docs/images/cockpit-resultat.png) |
+
+---
+
+## Ce qu'Agent Local sait faire
+
+**Parler et écouter**
+- **Lit ses réponses à voix haute** avec une voix naturelle (voix Microsoft en français ou en anglais), avec une **voix de secours hors ligne** (XTTS-v2) quand Internet est coupé.
+- **Dictée** : maintenez **Ctrl+Alt** et parlez, dans Agent Local ou dans **n'importe quelle autre fenêtre** (Word, votre navigateur, vos e-mails…). La transcription se fait sur votre PC (Whisper large-v3). En **mode conversation**, vous maintenez Ctrl+Alt, vous parlez, vous relâchez, et votre demande part toute seule : rien à taper, rien à cliquer.
+- **Les messages vocaux envoyés depuis votre téléphone** (module Telegram) sont transcrits et traités comme une demande écrite.
+
+**Voir**
+- **Vision** : il lit une image que vous lui donnez, ou **regarde votre écran** pour comprendre ce qui s'y passe.
+
+**Fichiers et documents**
+- Lit, cherche, renomme, déplace et **range vos fichiers et dossiers**.
+- **PDF** : lit, crée et remplit des documents PDF, sans Internet.
+- **Word et Excel** : lit et crée des documents et des tableaux.
+- Affiche **en direct** ce qu'il rédige (lettres, petits programmes…).
+- Ne supprime qu'en envoyant à la **Corbeille**, avec votre accord ; une **copie de sécurité** est faite avant chaque modification, avec un bouton **« Annuler la dernière modification »**.
+
+**Votre PC**
+- Exécute des commandes **PowerShell** (celles qui ne font que lire passent seules, les autres avec votre accord).
+- **Pilote Windows** : ouvre des logiciels, clique, tape au clavier, comme vous le feriez.
+- **Installe et désinstalle des logiciels** avec winget, avec votre accord.
+- **Santé du PC** : températures, disques, programmes au démarrage, journaux de Windows, matériel.
+- **Trousse de réparation** : 10 gestes de dépannage en administrateur, chacun confirmé par Windows.
+
+**Web et connaissances**
+- **Recherche web** sans compte ni clé (SearXNG), et lecture des pages.
+- **Navigateur** dans un profil séparé : navigation, lecture, remplissage de formulaires (il demande avant d'envoyer).
+- **Wikipédia hors ligne** (Kiwix), pour répondre même quand Internet est coupé.
+
+**Organisation et mémoire**
+- **Plan de mission** : pour une demande en plusieurs étapes, il affiche son plan, chaque action réalisée, la progression et la durée.
+- **Planificateur** : tâches qui reviennent (« tous les matins à 8 h, donne-moi la météo »).
+- **Carnet de mémoire** : il retient ce que vous lui confiez, s'en souvient tout seul, et vous pouvez y chercher.
+- **Historique des conversations** : reprenez n'importe quelle conversation là où elle s'était arrêtée.
+- **Compétences** : il apprend des façons de faire et les réutilise.
+
+**Vous voyez tout ce qu'il fait**
+- Le **flux réel** affiche ses pensées, ses actions et ses réponses (avec des filtres), un bouton **STOP** l'arrête à tout moment, et une jauge montre le remplissage de sa mémoire.
+
+**Modules avancés** (désactivés par défaut) : missions depuis votre téléphone avec **Telegram**, tri de vos **mails** (Gmail, Yahoo), lancement de vos automatisations **n8n**, second avis d'un **modèle en ligne** (OpenRouter), longues missions confiées à **Hermes Agent**. Voir [docs/modules.fr.md](docs/modules.fr.md).
+
 ---
 
 ## Votre PC peut-il faire tourner Agent Local ?

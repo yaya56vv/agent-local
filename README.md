@@ -6,6 +6,57 @@ An AI agent that **runs entirely on your Windows PC**. It reads and organizes yo
 
 It **asks for your approval** before anything that changes something or sends data, according to the autonomy level you choose. The interface, the agent, the voice and the dictation work in **English and French**.
 
+![Agent Local at work: a quick PC health check, from the request to the answer (sped up)](docs/images/demo.gif)
+
+*A real mission, sped up: "quick health check of my PC: graphics card temperatures and free disk space, then sum it up in three lines". Done in 53 seconds on an RTX 3090. Interface shown in French (English is available); the Memory panel is blurred for privacy.*
+
+| Home screen | Mission in progress | Result |
+|---|---|---|
+| ![Home screen](docs/images/cockpit-accueil.png) | ![Mission in progress: the plan and the actions on the right](docs/images/cockpit-en-action.png) | ![Result of the mission](docs/images/cockpit-resultat.png) |
+
+---
+
+## What Agent Local can do
+
+**Talk and listen**
+- **Reads its answers out loud** in a natural voice (Microsoft voices in English or French), with an **offline backup voice** (XTTS-v2) when the Internet is down.
+- **Dictation**: hold **Ctrl+Alt** and speak, in Agent Local or in **any other window** (Word, your browser, your e-mails…). Transcription runs on your PC (Whisper large-v3). In **conversation mode**, you hold Ctrl+Alt, speak, release, and your request is sent by itself: no typing, no clicking.
+- **Voice messages from your phone** (Telegram module) are transcribed and handled like a typed request.
+
+**See**
+- **Vision**: it reads an image you give it, or **looks at your screen** to understand what is going on.
+
+**Files and documents**
+- Reads, searches, renames, moves and **organizes your files and folders**.
+- **PDF**: reads, creates and fills in PDF documents, without the Internet.
+- **Word and Excel**: reads and creates documents and spreadsheets.
+- Shows what it writes **live**, like an artifact (letters, small programs…).
+- Deletes only to the **Recycle Bin**, with your approval; a **safety copy** is made before every change, with an **"Undo last change"** button.
+
+**Your PC**
+- Runs **PowerShell** commands (read-only commands freely, the others with your approval).
+- **Drives Windows**: opens programs, clicks, types, like you would.
+- **Installs and uninstalls software** with winget, with your approval.
+- **PC health**: temperatures, disks, startup programs, Windows event logs, hardware.
+- **Repair kit**: 10 troubleshooting actions as administrator, each confirmed by Windows.
+
+**Web and knowledge**
+- **Web search** without an account or API key (SearXNG), and reading of web pages.
+- **Browser** in a separate profile: browsing, reading, filling in forms (it asks before sending).
+- **Offline Wikipedia** (Kiwix), so it can still answer when the Internet is down.
+
+**Organization and memory**
+- **Mission plan**: for a multi-step request, it shows its plan, each action done, the progress and the duration.
+- **Scheduler**: recurring tasks ("every morning at 8, give me the weather").
+- **Memory notebook**: it remembers what you tell it, recalls it automatically, and you can search it.
+- **Conversation history**: pick up any conversation where you left it.
+- **Skills**: it learns procedures and reuses them.
+
+**You see everything it does**
+- The **live feed** shows its thoughts, its actions and its answers (with filters), a **STOP** button stops it at any time, and a gauge shows how full its memory is.
+
+**Advanced modules** (off by default): missions from your phone with **Telegram**, sorting your **mail** (Gmail, Yahoo), launching your **n8n** automations, a second opinion from an **online model** (OpenRouter), handing long missions to **Hermes Agent**. See [docs/modules.md](docs/modules.md).
+
 ---
 
 ## Can your PC run Agent Local?
